@@ -104,4 +104,45 @@ class ProtocolSerializationTest {
         assertEquals("OK", decoded.payload.status)
         assertEquals("app-vscode", decoded.payload.controlId)
     }
+
+    @Test
+    fun testSystemControlActionInvokeSerialization() {
+        val actions = listOf(
+            ActionInvokePayload("sys_bluetooth", "on"),
+            ActionInvokePayload("sys_wifi", "off"),
+            ActionInvokePayload("sys_volume", "set:80"),
+            ActionInvokePayload("sys_audio_device", "select:AirPods Pro"),
+            ActionInvokePayload("sys_brightness", "set:65")
+        )
+
+        for (action in actions) {
+            val envelope = Envelope(
+                type = "action.invoke",
+                requestId = "sys-req-${action.controlId}",
+                payload = action
+            )
+            val jsonStr = json.encodeToString(envelope)
+            val decoded = json.decodeFromString<Envelope<ActionInvokePayload>>(jsonStr)
+
+            assertEquals("action.invoke", decoded.type)
+            assertEquals(action.controlId, decoded.payload.controlId)
+            assertEquals(action.event, decoded.payload.event)
+        }
+    }
+
+    @Test
+    fun testProfileRefreshSerialization() {
+        val refreshEnvelope = Envelope(
+            type = "profile.refresh",
+            requestId = "ref-123",
+            payload = EmptyPayload()
+        )
+
+        val jsonStr = json.encodeToString(refreshEnvelope)
+        val decoded = json.decodeFromString<Envelope<EmptyPayload>>(jsonStr)
+
+        assertEquals("profile.refresh", decoded.type)
+        assertEquals("ref-123", decoded.requestId)
+    }
 }
+

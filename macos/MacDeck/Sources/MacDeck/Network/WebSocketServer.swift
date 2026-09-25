@@ -165,6 +165,19 @@ public final class WebSocketServer: @unchecked Sendable {
             }
             sendInitialProfile(to: session)
 
+        case "profile.get", "profile.refresh":
+            print("🔄 [MacDeck] Received \(raw.type) request [requestId: \(raw.requestId)]")
+            profileManager.reloadFromDisk()
+            let snapshot = profileManager.getCurrentProfileSnapshot()
+            let envelope = Envelope(
+                type: "profile.snapshot",
+                requestId: raw.requestId,
+                payload: snapshot
+            )
+            if let snapData = try? JSONEncoder().encode(envelope) {
+                session.send(data: snapData)
+            }
+
         case "ping":
             let pong = Envelope(
                 type: "pong",

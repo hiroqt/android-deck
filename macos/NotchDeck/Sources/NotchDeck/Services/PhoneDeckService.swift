@@ -192,6 +192,17 @@ public final class PhoneDeckService: ObservableObject {
         saveProfile(defaults)
     }
 
+    private var lastProfileModDate: Date?
+
+    private func checkProfileModification() {
+        guard let attrs = try? FileManager.default.attributesOfItem(atPath: profileURL.path),
+              let mod = attrs[.modificationDate] as? Date else { return }
+        if lastProfileModDate == nil || mod > lastProfileModDate! {
+            lastProfileModDate = mod
+            loadProfile()
+        }
+    }
+
     private func startWatchers() {
         // Watch profile.json
         startFileWatcher(for: profileURL) { [weak self] in
@@ -203,11 +214,12 @@ public final class PhoneDeckService: ObservableObject {
             self?.loadStatus()
         }
 
-        // Timer backup to keep connection status fresh
+        // Timer backup to keep connection status and profile fresh
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             self.pollTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
                 self?.loadStatus()
+                self?.checkProfileModification()
             }
         }
     }
@@ -218,13 +230,20 @@ public final class PhoneDeckService: ObservableObject {
 
         let source = DispatchSource.makeFileSystemObjectSource(
             fileDescriptor: fd,
-            eventMask: [.write, .extend, .rename, .delete],
+            eventMask: [.write, .extend, .rename, .delete, .attrib],
             queue: DispatchQueue.global(qos: .utility)
         )
 
-        source.setEventHandler {
-            usleep(100_000)
-            onChange()
+        source.setEventHandler { [weak self] in
+            let flags = source.data
+            if flags.contains(.delete) || flags.contains(.rename) {
+                DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 0.05) {
+                    self?.startFileWatcher(for: url, onChange: onChange)
+                    onChange()
+                }
+            } else {
+                onChange()
+            }
         }
 
         source.setCancelHandler {

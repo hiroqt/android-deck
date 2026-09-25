@@ -9,11 +9,13 @@ public struct ExpandedDeckView: View {
 
     public init(
         phoneDeckService: PhoneDeckService = .shared,
+        initialTab: Int = 0,
         onCollapse: @escaping () -> Void,
         onOpenSettings: @escaping () -> Void,
         onSelectSlotToEdit: @escaping (PhoneDeckSlot) -> Void
     ) {
         self.phoneDeckService = phoneDeckService
+        self._selectedTab = State(initialValue: initialTab)
         self.onCollapse = onCollapse
         self.onOpenSettings = onOpenSettings
         self.onSelectSlotToEdit = onSelectSlotToEdit
@@ -47,8 +49,10 @@ public struct ExpandedDeckView: View {
         self.onEditSlot = onEditSlot
     }
 
+    @State public var selectedTab: Int = 0
+
     public var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 6) {
             // Header bar
             HStack(spacing: 8) {
                 // Title
@@ -64,6 +68,43 @@ public struct ExpandedDeckView: View {
 
                 Spacer()
 
+                // Tab Switcher (Apps vs Control Panel)
+                HStack(spacing: 2) {
+                    Button(action: { withAnimation { selectedTab = 0 } }) {
+                        Text("Apps")
+                            .font(.system(size: 10, weight: selectedTab == 0 ? .bold : .medium))
+                            .foregroundColor(selectedTab == 0 ? .white : Color.white.opacity(0.6))
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(
+                                Capsule()
+                                    .fill(selectedTab == 0 ? Color.white.opacity(0.18) : Color.clear)
+                            )
+                    }
+                    .buttonStyle(.plain)
+
+                    Button(action: { withAnimation { selectedTab = 1 } }) {
+                        Text("Controls")
+                            .font(.system(size: 10, weight: selectedTab == 1 ? .bold : .medium))
+                            .foregroundColor(selectedTab == 1 ? .white : Color.white.opacity(0.6))
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(
+                                Capsule()
+                                    .fill(selectedTab == 1 ? Color.white.opacity(0.18) : Color.clear)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(2)
+                .background(
+                    Capsule()
+                        .fill(Color.white.opacity(0.06))
+                        .overlay(Capsule().strokeBorder(Color.white.opacity(0.1), lineWidth: 1))
+                )
+
+                Spacer()
+
                 // Connected Device Badge
                 HStack(spacing: 5) {
                     Circle()
@@ -75,7 +116,7 @@ public struct ExpandedDeckView: View {
                         .font(.system(size: 10, weight: .semibold, design: .rounded))
                         .foregroundColor(phoneDeckService.isDeviceConnected ? .white : Color.white.opacity(0.65))
                 }
-                .padding(.horizontal, 9)
+                .padding(.horizontal, 8)
                 .padding(.vertical, 3.5)
                 .background(
                     Capsule()
@@ -86,7 +127,7 @@ public struct ExpandedDeckView: View {
                 Spacer()
 
                 // Action Controls
-                HStack(spacing: 12) {
+                HStack(spacing: 10) {
                     // Reset to defaults
                     Button(action: {
                         withAnimation { phoneDeckService.resetDefaults() }
@@ -117,36 +158,70 @@ public struct ExpandedDeckView: View {
                     .help("Collapse")
                 }
             }
-            .padding(.horizontal, 18)
-            .padding(.top, 10)
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
 
-            // Slot Matrix Grid (3 columns x 2 rows = 6 slots)
-            LazyVGrid(
-                columns: [
-                    GridItem(.fixed(132), spacing: 12),
-                    GridItem(.fixed(132), spacing: 12),
-                    GridItem(.fixed(132), spacing: 12)
-                ],
-                spacing: 10
-            ) {
-                ForEach(displaySlots) { slot in
-                    DeckSlotCardView(
-                        slot: slot,
-                        onEdit: {
-                            onSelectSlotToEdit(slot)
-                        },
-                        onRemove: {
-                            withAnimation(.spring(response: 0.25, dampingFraction: 0.72)) {
-                                phoneDeckService.clearSlot(index: slot.index)
+            // Content: Tab 0 (6 Apps Grid) vs Tab 1 (Notch Control Panel)
+            if selectedTab == 0 {
+                LazyVGrid(
+                    columns: [
+                        GridItem(.fixed(132), spacing: 12),
+                        GridItem(.fixed(132), spacing: 12),
+                        GridItem(.fixed(132), spacing: 12)
+                    ],
+                    spacing: 10
+                ) {
+                    ForEach(displaySlots) { slot in
+                        DeckSlotCardView(
+                            slot: slot,
+                            onEdit: {
+                                onSelectSlotToEdit(slot)
+                            },
+                            onRemove: {
+                                withAnimation(.spring(response: 0.25, dampingFraction: 0.72)) {
+                                    phoneDeckService.clearSlot(index: slot.index)
+                                }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
+                .padding(.horizontal, 16)
+            } else {
+                NotchControlPanelView()
+                    .transition(.opacity)
             }
-            .padding(.horizontal, 18)
-            .padding(.bottom, 14)
+
+            Spacer(minLength: 0)
+
+            // Page Indicator Dots
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(selectedTab == 0 ? Color.cyan : Color.white.opacity(0.25))
+                    .frame(width: selectedTab == 0 ? 7 : 5, height: selectedTab == 0 ? 7 : 5)
+                    .onTapGesture { withAnimation { selectedTab = 0 } }
+
+                Circle()
+                    .fill(selectedTab == 1 ? Color.cyan : Color.white.opacity(0.25))
+                    .frame(width: selectedTab == 1 ? 7 : 5, height: selectedTab == 1 ? 7 : 5)
+                    .onTapGesture { withAnimation { selectedTab = 1 } }
+            }
+            .padding(.bottom, 6)
         }
         .frame(width: 480, height: 224)
+        .gesture(
+            DragGesture(minimumDistance: 20)
+                .onEnded { value in
+                    if value.translation.width < -30 {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                            selectedTab = 1
+                        }
+                    } else if value.translation.width > 30 {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                            selectedTab = 0
+                        }
+                    }
+                }
+        )
     }
 
     private var deviceStatusText: String {

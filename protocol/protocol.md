@@ -140,3 +140,20 @@ Heartbeat keepalive sent periodically.
 }
 ```
 Response: `type: "pong"` with matching `requestId`.
+
+---
+
+### 2.7 Profile Refresh: `profile.refresh` / `profile.get`
+Sent by client (e.g. upon user tapping the Refresh button on phone) to explicitly request a fresh profile snapshot from the macOS host.
+
+```json
+{
+  "protocolVersion": 1,
+  "type": "profile.refresh",
+  "requestId": "9a38f7e2-4731-419b-a0d4-1a9829f032aa",
+  "timestamp": 1780000020000,
+  "payload": {}
+}
+```
+Response: `type: "profile.snapshot"` with matching `requestId` and refreshed profile payload. The macOS host also reloads `~/.macdeck/profile.json` from disk and emits `profile.changed` to all connected clients.
+

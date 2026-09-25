@@ -59,10 +59,13 @@ public final class NotchWindowController: NSObject, ObservableObject {
         )
 
         let initialSize = geo.notchCollapsedSize
-        let initialX = screen.frame.midX - initialSize.width / 2
-        let initialY = screen.frame.maxY - initialSize.height
+        let margin = NotchPanel.shadowMargin
+        let panelWidth = initialSize.width + margin * 2
+        let panelHeight = initialSize.height + margin
+        let panelX = screen.frame.midX - panelWidth / 2
+        let panelY = screen.frame.maxY - panelHeight
 
-        let contentRect = NSRect(x: initialX, y: initialY, width: initialSize.width, height: initialSize.height)
+        let contentRect = NSRect(x: panelX, y: panelY, width: panelWidth, height: panelHeight)
         let panel = NotchPanel(contentRect: contentRect)
 
         let rootView = RootWrapperView(
@@ -70,7 +73,7 @@ public final class NotchWindowController: NSObject, ObservableObject {
             hasPhysicalNotch: geo.hasPhysicalNotch
         )
 
-        panel.contentView = NSHostingView(rootView: rootView)
+        panel.contentView = NotchHostingView(rootView: rootView)
         panel.orderFrontRegardless()
         self.panel = panel
     }
@@ -84,28 +87,53 @@ public final class NotchWindowController: NSObject, ObservableObject {
         }
 
         guard self.isExpanded != expanded else { return }
-        self.isExpanded = expanded
 
         guard let screen = NSScreen.main ?? NSScreen.screens.first,
-              let panel = self.panel else { return }
+              let panel = self.panel else {
+            self.isExpanded = expanded
+            return
+        }
 
-        let targetSize = expanded ? CGSize(width: 480, height: 224) : CGSize(width: 180, height: max(32, screen.safeAreaInsets.top))
-        let targetX = screen.frame.midX - targetSize.width / 2
-        let targetY = screen.frame.maxY - targetSize.height
+        withAnimation(.spring(response: 0.38, dampingFraction: 0.76, blendDuration: 0.1)) {
+            self.isExpanded = expanded
+        }
+
+        let contentSize = expanded ? CGSize(width: 480, height: 224) : CGSize(width: 180, height: max(32, screen.safeAreaInsets.top))
+        let margin = NotchPanel.shadowMargin
+        let targetWidth = contentSize.width + margin * 2
+        let targetHeight = contentSize.height + margin
+        let targetX = screen.frame.midX - targetWidth / 2
+        let targetY = screen.frame.maxY - targetHeight
 
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.35
-            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            panel.animator().setFrame(NSRect(x: targetX, y: targetY, width: targetSize.width, height: targetSize.height), display: true)
+            context.duration = 0.38
+            // Liquid spring-like cubic bezier matching SwiftUI spring timing
+            context.timingFunction = CAMediaTimingFunction(controlPoints: 0.16, 1.0, 0.3, 1.0)
+            panel.animator().setFrame(NSRect(x: targetX, y: targetY, width: targetWidth, height: targetHeight), display: true)
         }
+    }
+
+    private var activeNotchRectOnScreen: NSRect? {
+        guard let panel = self.panel else { return nil }
+        let f = panel.frame
+        let margin = NotchPanel.shadowMargin
+        return NSRect(
+            x: f.origin.x + margin,
+            y: f.origin.y + margin,
+            width: max(0, f.width - margin * 2),
+            height: max(0, f.height - margin)
+        )
     }
 
     private func setupEventMonitors() {
         // Outside click detector
         globalClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
             guard let self = self, self.isExpanded else { return }
+            // Do NOT collapse if editor window or settings window is currently active/open
+            if self.editorWindow != nil || self.settingsWindow != nil { return }
+
             let mouseLoc = NSEvent.mouseLocation
-            if let frame = self.panel?.frame, !frame.contains(mouseLoc) {
+            if let activeRect = self.activeNotchRectOnScreen, !activeRect.contains(mouseLoc) {
                 DispatchQueue.main.async {
                     self.setExpanded(false)
                 }
@@ -114,8 +142,11 @@ public final class NotchWindowController: NSObject, ObservableObject {
 
         localClickMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
             guard let self = self, self.isExpanded else { return event }
+            // Do NOT collapse if editor window or settings window is currently active/open
+            if self.editorWindow != nil || self.settingsWindow != nil { return event }
+
             let mouseLoc = NSEvent.mouseLocation
-            if let frame = self.panel?.frame, !frame.contains(mouseLoc) {
+            if let activeRect = self.activeNotchRectOnScreen, !activeRect.contains(mouseLoc) {
                 DispatchQueue.main.async {
                     self.setExpanded(false)
                 }
@@ -141,6 +172,17 @@ public final class NotchWindowController: NSObject, ObservableObject {
         window.center()
         window.isReleasedWhenClosed = false
         window.contentView = NSHostingView(rootView: SettingsView())
+
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: window,
+            queue: .main
+        ) { [weak self] _ in
+            if self?.settingsWindow === window {
+                self?.settingsWindow = nil
+            }
+        }
+
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         self.settingsWindow = window
@@ -162,6 +204,17 @@ public final class NotchWindowController: NSObject, ObservableObject {
         window.center()
         window.isReleasedWhenClosed = false
 
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: window,
+            queue: .main
+        ) { [weak self] _ in
+            if self?.editorWindow === window {
+                self?.editorWindow = nil
+                self?.setExpanded(true)
+            }
+        }
+
         let sheet = PhoneAppPickerSheet(
             slotIndex: slot.index,
             currentBundleId: slot.bundleId,
@@ -169,10 +222,14 @@ public final class NotchWindowController: NSObject, ObservableObject {
                 PhoneDeckService.shared.setSlotApp(index: slot.index, app: app)
                 window?.close()
                 self?.editorWindow = nil
+                // Keep the notch expanded after saving is done!
+                self?.setExpanded(true)
             },
             onCancel: { [weak self, weak window] in
                 window?.close()
                 self?.editorWindow = nil
+                // Keep the notch expanded when cancelled
+                self?.setExpanded(true)
             }
         )
         window.contentView = NSHostingView(rootView: sheet)
@@ -197,6 +254,17 @@ public final class NotchWindowController: NSObject, ObservableObject {
         window.center()
         window.isReleasedWhenClosed = false
 
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: window,
+            queue: .main
+        ) { [weak self] _ in
+            if self?.editorWindow === window {
+                self?.editorWindow = nil
+                self?.setExpanded(true)
+            }
+        }
+
         var currentSlot = slot
         let sheet = InlineSlotEditorSheet(
             slot: Binding(get: { currentSlot }, set: { currentSlot = $0 }),
@@ -204,10 +272,14 @@ public final class NotchWindowController: NSObject, ObservableObject {
                 ConfigManager.shared.updateSlot(updated)
                 window?.close()
                 self?.editorWindow = nil
+                // Keep the notch expanded after saving is done!
+                self?.setExpanded(true)
             },
             onCancel: { [weak self, weak window] in
                 window?.close()
                 self?.editorWindow = nil
+                // Keep the notch expanded when cancelled
+                self?.setExpanded(true)
             }
         )
         window.contentView = NSHostingView(rootView: sheet)
@@ -218,7 +290,12 @@ public final class NotchWindowController: NSObject, ObservableObject {
 
     @objc private func screenParametersChanged() {
         guard let screen = NSScreen.main, let panel = self.panel else { return }
-        let targetSize = isExpanded ? CGSize(width: 480, height: 224) : CGSize(width: 180, height: max(32, screen.safeAreaInsets.top))
-        panel.setFrame(NSRect(x: screen.frame.midX - targetSize.width / 2, y: screen.frame.maxY - targetSize.height, width: targetSize.width, height: targetSize.height), display: true)
+        let contentSize = isExpanded ? CGSize(width: 480, height: 224) : CGSize(width: 180, height: max(32, screen.safeAreaInsets.top))
+        let margin = NotchPanel.shadowMargin
+        let targetWidth = contentSize.width + margin * 2
+        let targetHeight = contentSize.height + margin
+        let targetX = screen.frame.midX - targetWidth / 2
+        let targetY = screen.frame.maxY - targetHeight
+        panel.setFrame(NSRect(x: targetX, y: targetY, width: targetWidth, height: targetHeight), display: true)
     }
 }

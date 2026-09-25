@@ -65,4 +65,25 @@ final class ActionExecutionTests: XCTestCase {
                           "Apps are not sorted: \(apps[i].name) vs \(apps[i + 1].name)")
         }
     }
+
+    func testSystemControlAudioAndVolumeMethods() {
+        let systemControl = SystemControlService.shared
+        let devices = systemControl.getAudioOutputDevices()
+        XCTAssertFalse(devices.isEmpty, "Should find at least one audio output device on Mac")
+
+        let defaultDevice = systemControl.getDefaultAudioOutputDevice()
+        XCTAssertFalse(defaultDevice.isEmpty, "Should get active audio device")
+
+        let vol = systemControl.getOutputVolume()
+        XCTAssertTrue(vol >= 0 && vol <= 100, "Volume should be between 0 and 100")
+
+        systemControl.setOutputVolume(75)
+    }
+
+    func testSystemControlBrightness() {
+        let systemControl = SystemControlService.shared
+        let brightness = systemControl.getBrightness()
+        XCTAssertTrue(brightness >= 0.0 && brightness <= 1.0, "Brightness should be between 0.0 and 1.0")
+    }
 }
+

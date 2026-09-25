@@ -42,42 +42,61 @@ public struct LiquidGlassBackground: View {
     }
 
     public var body: some View {
-        ZStack {
-            // Frosted blur
-            VisualEffectView(material: .hudWindow, blendingMode: .behindWindow)
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-
-            // Dark acrylic tint gradient
-            LinearGradient(
-                colors: [
-                    Color(white: 0.08, opacity: 0.85),
-                    Color(white: 0.03, opacity: 0.92)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-
-            // Ambient inner glow
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(Color.white.opacity(0.03))
-
-            // Directional Specular Reflection Rim
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .strokeBorder(
-                    LinearGradient(
-                        stops: [
-                            .init(color: Color.white.opacity(specularIntensity), location: 0.0),
-                            .init(color: Color.white.opacity(specularIntensity * 0.4), location: 0.3),
-                            .init(color: Color.white.opacity(0.08), location: 0.7),
-                            .init(color: Color.white.opacity(0.02), location: 1.0)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    ),
-                    lineWidth: 1.0
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(.ultraThinMaterial)
+            .overlay(
+                // Dark acrylic tint gradient for deep obsidian-glass look
+                LinearGradient(
+                    colors: [
+                        Color(white: 0.12, opacity: 0.90),
+                        Color(white: 0.04, opacity: 0.96)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
                 )
-        }
-        .shadow(color: Color.black.opacity(isExpanded ? 0.45 : 0.2), radius: isExpanded ? 24 : 8, y: isExpanded ? 8 : 2)
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            )
+            .overlay(
+                // Ambient inner sheen
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            stops: [
+                                .init(color: Color.white.opacity(0.06), location: 0.0),
+                                .init(color: Color.clear, location: 0.35)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+            )
+            .overlay(
+                // Directional Specular Reflection Rim
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            stops: [
+                                .init(color: Color.white.opacity(specularIntensity), location: 0.0),
+                                .init(color: Color.white.opacity(specularIntensity * 0.4), location: 0.25),
+                                .init(color: Color.white.opacity(0.08), location: 0.7),
+                                .init(color: Color.white.opacity(0.02), location: 1.0)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 1.0
+                    )
+            )
+            .background(
+                // Shape-matched drop shadow with continuous curvature - no rectangular clipping
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(Color.black.opacity(0.01))
+                    .shadow(
+                        color: Color.black.opacity(isExpanded ? 0.45 : 0.25),
+                        radius: isExpanded ? 18 : 6,
+                        x: 0,
+                        y: isExpanded ? 6 : 2
+                    )
+            )
     }
 }

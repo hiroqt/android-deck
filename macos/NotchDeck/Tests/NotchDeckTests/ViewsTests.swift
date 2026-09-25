@@ -545,6 +545,40 @@ final class ViewsTests: XCTestCase {
         hosting.layout()
         XCTAssertNotNil(hosting)
     }
+
+    func testNotchControlPanelViewHosting() {
+        let controlPanel = NotchControlPanelView()
+        XCTAssertNotNil(controlPanel.body)
+
+        let hosting = NSHostingView(rootView: controlPanel)
+        hosting.layout()
+        XCTAssertNotNil(hosting)
+    }
+
+    func testExpandedDeckViewTabSwitching() {
+        let appsView = ExpandedDeckView(
+            initialTab: 0,
+            onCollapse: {},
+            onOpenSettings: {},
+            onSelectSlotToEdit: { _ in }
+        )
+        XCTAssertEqual(appsView.selectedTab, 0)
+        XCTAssertNotNil(appsView.body)
+
+        let controlsView = ExpandedDeckView(
+            initialTab: 1,
+            onCollapse: {},
+            onOpenSettings: {},
+            onSelectSlotToEdit: { _ in }
+        )
+        XCTAssertEqual(controlsView.selectedTab, 1)
+        XCTAssertNotNil(controlsView.body)
+
+        let hosting = NSHostingView(rootView: controlsView)
+        hosting.layout()
+        XCTAssertNotNil(hosting)
+    }
 }
+
 
 

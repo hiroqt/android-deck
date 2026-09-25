@@ -60,6 +60,9 @@ class DeckWebSocketClient(
     private val _lastErrorMessage = MutableStateFlow<String?>(null)
     val lastErrorMessage: StateFlow<String?> = _lastErrorMessage.asStateFlow()
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
     fun connect(host: String, port: Int = 8765) {
         val cleanHost = host.trim().removePrefix("ws://").removePrefix("http://")
         currentUrl = "ws://$cleanHost:$port"
@@ -150,6 +153,7 @@ class DeckWebSocketClient(
                 "profile.snapshot", "profile.changed" -> {
                     val snapshotEnv = json.decodeFromString<Envelope<ProfileSnapshotPayload>>(text)
                     _currentProfile.value = snapshotEnv.payload
+                    _isRefreshing.value = false
                     Log.d(TAG, "Received profile: ${snapshotEnv.payload.name} with ${snapshotEnv.payload.controls.size} controls")
                 }
                 "action.result" -> {
@@ -166,6 +170,27 @@ class DeckWebSocketClient(
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error parsing message: ${e.message}", e)
+        }
+    }
+
+    fun refreshProfile() {
+        scope.launch {
+            _isRefreshing.value = true
+            if (_connectionState.value == ConnectionState.CONNECTED) {
+                val env = Envelope(
+                    type = "profile.refresh",
+                    requestId = UUID.randomUUID().toString(),
+                    payload = EmptyPayload()
+                )
+                val sent = webSocket?.send(json.encodeToString(env)) ?: false
+                if (!sent) {
+                    initiateConnection()
+                }
+            } else {
+                initiateConnection()
+            }
+            delay(1200)
+            _isRefreshing.value = false
         }
     }
 

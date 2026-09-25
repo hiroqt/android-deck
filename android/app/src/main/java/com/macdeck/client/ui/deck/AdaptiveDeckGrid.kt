@@ -56,8 +56,10 @@ fun AdaptiveDeckGrid(
                 ) {
                     for (c in 0 until cols) {
                         val index = r * cols + c
-                        if (index < controls.size) {
-                            val control = controls[index]
+                        val control = if (index < controls.size) controls[index] else null
+                        val isSlotActive = control != null && control.bundleId.isNotBlank() && control.bundleId != "empty"
+
+                        if (isSlotActive) {
                             val status = tileStates[control.id] ?: TileStatus.IDLE
 
                             DeckAppTile(

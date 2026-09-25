@@ -34,37 +34,88 @@ public final class ProfileManager: @unchecked Sendable {
     public var onProfileChanged: (@Sendable (ProfileSnapshotPayload) -> Void)?
 
     private var fileWatcher: DispatchSourceFileSystemObject?
+    private var dirWatcher: DispatchSourceFileSystemObject?
+    private var pollTimer: DispatchSourceTimer?
+    private var lastModificationDate: Date?
 
-    public init() {
-        let home = FileManager.default.homeDirectoryForCurrentUser
-        let dir = home.appendingPathComponent(".macdeck", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        self.configURL = dir.appendingPathComponent("profile.json")
+    public init(configURL: URL? = nil) {
+        if let configURL = configURL {
+            self.configURL = configURL
+        } else {
+            let home = FileManager.default.homeDirectoryForCurrentUser
+            let dir = home.appendingPathComponent(".macdeck", isDirectory: true)
+            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            self.configURL = dir.appendingPathComponent("profile.json")
+        }
 
-        if let data = try? Data(contentsOf: configURL),
+        if let data = try? Data(contentsOf: self.configURL),
            let loaded = try? JSONDecoder().decode(StoredProfile.self, from: data) {
             self.profile = loaded
+            if let attrs = try? FileManager.default.attributesOfItem(atPath: self.configURL.path) {
+                self.lastModificationDate = attrs[.modificationDate] as? Date
+            }
         } else {
             self.profile = ProfileManager.defaultProfile()
-            ProfileManager.saveProfile(self.profile, to: configURL)
+            ProfileManager.saveProfile(self.profile, to: self.configURL)
+            if let attrs = try? FileManager.default.attributesOfItem(atPath: self.configURL.path) {
+                self.lastModificationDate = attrs[.modificationDate] as? Date
+            }
         }
 
         startWatchingConfigFile()
+        startWatchingDirectory()
+        startPollingTimer()
+    }
+
+    deinit {
+        stopWatchers()
+    }
+
+    private var debounceWorkItem: DispatchWorkItem?
+
+    public func stopWatchers() {
+        lock.lock()
+        debounceWorkItem?.cancel()
+        debounceWorkItem = nil
+        lock.unlock()
+
+        pollTimer?.cancel()
+        pollTimer = nil
+
+        fileWatcher?.cancel()
+        fileWatcher = nil
+
+        dirWatcher?.cancel()
+        dirWatcher = nil
+    }
+
+    private func scheduleReload() {
+        lock.lock()
+        debounceWorkItem?.cancel()
+        let item = DispatchWorkItem { [weak self] in
+            self?.startWatchingConfigFile()
+            self?.reloadFromDisk()
+        }
+        debounceWorkItem = item
+        lock.unlock()
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 0.05, execute: item)
     }
 
     private func startWatchingConfigFile() {
+        fileWatcher?.cancel()
+        fileWatcher = nil
+
         let fd = open(configURL.path, O_EVTONLY)
         guard fd >= 0 else { return }
 
         let source = DispatchSource.makeFileSystemObjectSource(
             fileDescriptor: fd,
-            eventMask: [.write, .extend, .rename, .delete],
+            eventMask: [.write, .extend, .rename, .delete, .attrib],
             queue: DispatchQueue.global(qos: .utility)
         )
 
         source.setEventHandler { [weak self] in
-            usleep(100_000)
-            self?.reloadFromDisk()
+            self?.scheduleReload()
         }
 
         source.setCancelHandler {
@@ -75,14 +126,88 @@ public final class ProfileManager: @unchecked Sendable {
         self.fileWatcher = source
     }
 
-    public func reloadFromDisk() {
-        lock.lock()
-        if let data = try? Data(contentsOf: configURL),
-           let loaded = try? JSONDecoder().decode(StoredProfile.self, from: data) {
-            self.profile = loaded
-            self.profile.revision += 1
-            print("🔄 [MacDeck] Reloaded profile from disk: \(loaded.slots.map { $0.label }.joined(separator: ", "))")
+    private func startWatchingDirectory() {
+        let dirURL = configURL.deletingLastPathComponent()
+        let fd = open(dirURL.path, O_EVTONLY)
+        guard fd >= 0 else { return }
+
+        let source = DispatchSource.makeFileSystemObjectSource(
+            fileDescriptor: fd,
+            eventMask: [.write, .extend, .attrib],
+            queue: DispatchQueue.global(qos: .utility)
+        )
+
+        source.setEventHandler { [weak self] in
+            // Parent directory modified (e.g. atomic write replacement or file created)
+            self?.scheduleReload()
         }
+
+        source.setCancelHandler {
+            close(fd)
+        }
+
+        source.resume()
+        self.dirWatcher = source
+    }
+
+    private func startPollingTimer() {
+        let timer = DispatchSource.makeTimerSource(queue: DispatchQueue.global(qos: .utility))
+        timer.schedule(deadline: .now() + 1.0, repeating: 1.0)
+        timer.setEventHandler { [weak self] in
+            self?.checkModificationDateAndReloadIfNeeded()
+        }
+        timer.resume()
+        self.pollTimer = timer
+    }
+
+    private func checkModificationDateAndReloadIfNeeded() {
+        guard let attrs = try? FileManager.default.attributesOfItem(atPath: configURL.path),
+              let modDate = attrs[.modificationDate] as? Date else {
+            return
+        }
+
+        lock.lock()
+        let prev = lastModificationDate
+        lock.unlock()
+
+        if prev == nil || modDate > prev! {
+            reloadFromDisk()
+        }
+    }
+
+    public func reloadFromDisk() {
+        var loadedProfile: StoredProfile?
+        var newModDate: Date?
+
+        for _ in 0..<3 {
+            if let data = try? Data(contentsOf: configURL),
+               let loaded = try? JSONDecoder().decode(StoredProfile.self, from: data) {
+                loadedProfile = loaded
+                if let attrs = try? FileManager.default.attributesOfItem(atPath: configURL.path) {
+                    newModDate = attrs[.modificationDate] as? Date
+                }
+                break
+            }
+            usleep(30_000) // 30ms backoff in case file write is in progress
+        }
+
+        guard let loaded = loadedProfile else { return }
+
+        lock.lock()
+        let oldSlots = self.profile.slots
+        let newSlots = loaded.slots
+        let changed = oldSlots.count != newSlots.count || zip(oldSlots, newSlots).contains {
+            $0.id != $1.id || $0.label != $1.label || $0.bundleId != $1.bundleId
+        }
+
+        self.profile = loaded
+        if changed {
+            self.profile.revision += 1
+        }
+        if let mod = newModDate {
+            self.lastModificationDate = mod
+        }
+        print("🔄 [MacDeck] Reloaded profile from disk: \(loaded.slots.map { $0.label }.joined(separator: ", "))")
         lock.unlock()
 
         let snapshot = getCurrentProfileSnapshot()
@@ -165,6 +290,9 @@ public final class ProfileManager: @unchecked Sendable {
         profile.slots[index].bundleId = app.bundleId
         profile.revision += 1
         ProfileManager.saveProfile(profile, to: configURL)
+        if let attrs = try? FileManager.default.attributesOfItem(atPath: configURL.path) {
+            self.lastModificationDate = attrs[.modificationDate] as? Date
+        }
         lock.unlock()
 
         let snapshot = getCurrentProfileSnapshot()

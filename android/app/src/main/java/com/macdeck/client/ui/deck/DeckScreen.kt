@@ -4,6 +4,9 @@ import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -18,6 +21,7 @@ import com.macdeck.client.core.model.DeckControl
 import com.macdeck.client.core.network.ConnectionState
 import com.macdeck.client.core.network.DeckWebSocketClient
 import com.macdeck.client.ui.theme.*
+import kotlinx.coroutines.launch
 
 private const val PREFS_NAME = "macdeck_settings"
 private const val KEY_HOST = "saved_host"
@@ -35,6 +39,7 @@ fun DeckScreen(
     val currentProfile by client.currentProfile.collectAsState()
     val tileStates by client.tileStates.collectAsState()
     val lastError by client.lastErrorMessage.collectAsState()
+    val isRefreshing by client.isRefreshing.collectAsState()
 
     var isUsbMode by remember {
         mutableStateOf(prefs.getBoolean(KEY_IS_USB, false))
@@ -68,12 +73,14 @@ fun DeckScreen(
             .background(DeckBackground)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Top Compact Connection Bar
+            // Top Compact Connection Bar with Refresh
             ConnectionBar(
                 connectionState = connectionState,
                 currentHost = if (isUsbMode) "127.0.0.1" else currentHost,
                 isUsbMode = isUsbMode,
-                onOpenSettings = { showDialog = true }
+                onOpenSettings = { showDialog = true },
+                onRefresh = { client.refreshProfile() },
+                isRefreshing = isRefreshing
             )
 
             // Prominent notification banner if disconnected
@@ -89,7 +96,6 @@ fun DeckScreen(
                             else
                                 DeckAccent.copy(alpha = 0.15f)
                         )
-                        .clickable { showDialog = true }
                         .padding(horizontal = 12.dp, vertical = 8.dp)
                 ) {
                     Row(
@@ -105,32 +111,95 @@ fun DeckScreen(
                             },
                             color = if (connectionState == ConnectionState.RECONNECTING) DeckWarning else TextPrimary,
                             fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { showDialog = true }
                         )
 
-                        Text(
-                            text = "Change",
-                            color = DeckAccent,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Refresh",
+                                color = DeckAccent,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier
+                                    .clickable { client.refreshProfile() }
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+
+                            Spacer(modifier = Modifier.width(4.dp))
+
+                            Text(
+                                text = "Change",
+                                color = TextSecondary,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier
+                                    .clickable { showDialog = true }
+                                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                            )
+                        }
                     }
                 }
             }
 
-            // Main Adaptive Full-Screen Deck Grid
+            val pagerState = rememberPagerState(initialPage = 0, pageCount = { 2 })
+            val coroutineScope = rememberCoroutineScope()
+
+            // Main Content: Horizontal Pager between 6 Apps and Control Panel
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
             ) {
-                AdaptiveDeckGrid(
-                    controls = displayControls,
-                    tileStates = tileStates,
-                    onControlTap = { controlId ->
-                        client.sendActionInvoke(controlId, "tap")
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize()
+                ) { page ->
+                    if (page == 0) {
+                        AdaptiveDeckGrid(
+                            controls = displayControls,
+                            tileStates = tileStates,
+                            onControlTap = { controlId ->
+                                client.sendActionInvoke(controlId, "tap")
+                            }
+                        )
+                    } else {
+                        ControlPanelView(
+                            client = client,
+                            modifier = Modifier.fillMaxSize()
+                        )
                     }
-                )
+                }
+            }
+
+            // Subtle Page Dots Indicator (Swipe left / right feedback)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 6.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                repeat(2) { pageIndex ->
+                    val isSelected = pagerState.currentPage == pageIndex
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 4.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(if (isSelected) DeckAccent else DeckSurfaceBorder)
+                            .clickable {
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(pageIndex)
+                                }
+                            }
+                            .size(
+                                width = if (isSelected) 18.dp else 7.dp,
+                                height = 5.dp
+                            )
+                    )
+                }
             }
         }
 

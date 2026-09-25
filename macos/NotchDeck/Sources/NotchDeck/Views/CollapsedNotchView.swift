@@ -19,29 +19,22 @@ public struct CollapsedNotchView: View {
 
     public var body: some View {
         Button(action: onExpand) {
-            ZStack {
-                LiquidGlassBackground(
-                    cornerRadius: hasPhysicalNotch ? 12 : 16,
-                    specularIntensity: isHovered ? 0.6 : 0.35,
-                    isExpanded: false
-                )
+            HStack(spacing: 7) {
+                Circle()
+                    .fill(phoneDeckService.isDeviceConnected ? Color.green : Color.white.opacity(0.35))
+                    .frame(width: 6, height: 6)
+                    .shadow(color: phoneDeckService.isDeviceConnected ? Color.green.opacity(0.8) : Color.clear, radius: 2)
 
-                HStack(spacing: 7) {
-                    Circle()
-                        .fill(phoneDeckService.isDeviceConnected ? Color.green : Color.white.opacity(0.35))
-                        .frame(width: 6, height: 6)
-                        .shadow(color: phoneDeckService.isDeviceConnected ? Color.green.opacity(0.8) : Color.clear, radius: 2)
+                Text("Deck")
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .foregroundColor(Color.white.opacity(isHovered ? 0.95 : 0.8))
 
-                    Text("Deck")
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
-                        .foregroundColor(Color.white.opacity(0.8))
-
-                    Circle()
-                        .fill(Color.white.opacity(0.35))
-                        .frame(width: 4, height: 4)
-                }
+                Circle()
+                    .fill(Color.white.opacity(isHovered ? 0.5 : 0.35))
+                    .frame(width: 4, height: 4)
             }
             .frame(width: 180, height: 32)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
