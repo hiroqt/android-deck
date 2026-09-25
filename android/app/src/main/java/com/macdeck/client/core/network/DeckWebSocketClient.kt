@@ -57,6 +57,9 @@ class DeckWebSocketClient(
     private val _tileStates = MutableStateFlow<Map<String, TileStatus>>(emptyMap())
     val tileStates: StateFlow<Map<String, TileStatus>> = _tileStates.asStateFlow()
 
+    private val _lastErrorMessage = MutableStateFlow<String?>(null)
+    val lastErrorMessage: StateFlow<String?> = _lastErrorMessage.asStateFlow()
+
     fun connect(host: String, port: Int = 8765) {
         val cleanHost = host.trim().removePrefix("ws://").removePrefix("http://")
         currentUrl = "ws://$cleanHost:$port"
@@ -79,6 +82,7 @@ class DeckWebSocketClient(
             override fun onOpen(webSocket: WebSocket, response: Response) {
                 Log.d(TAG, "WebSocket connected to $currentUrl")
                 _connectionState.value = ConnectionState.CONNECTED
+                _lastErrorMessage.value = null
                 reconnectAttempt = 0
 
                 // Send hello handshake
@@ -115,6 +119,7 @@ class DeckWebSocketClient(
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                 Log.e(TAG, "WebSocket failure: ${t.message}")
+                _lastErrorMessage.value = t.localizedMessage ?: t.message
                 if (shouldAutoReconnect) {
                     scheduleReconnect()
                 } else {

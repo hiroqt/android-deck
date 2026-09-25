@@ -20,11 +20,12 @@ import com.macdeck.client.ui.theme.*
 fun ConnectionDialog(
     currentHost: String,
     isUsbMode: Boolean,
+    errorMessage: String? = null,
     onConnectUsb: () -> Unit,
     onConnectLan: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var lanIpInput by remember { mutableStateOf(if (!isUsbMode) currentHost else "192.168.1.") }
+    var lanIpInput by remember { mutableStateOf(if (!isUsbMode && currentHost != "127.0.0.1") currentHost else "192.168.1.3") }
     var selectedTab by remember { mutableStateOf(if (isUsbMode) 0 else 1) }
 
     Dialog(onDismissRequest = onDismiss) {
@@ -51,7 +52,7 @@ fun ConnectionDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Tab Selector: USB vs LAN
+                // Tab Selector: Wi-Fi (LAN) vs USB
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -63,14 +64,14 @@ fun ConnectionDialog(
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(if (selectedTab == 0) DeckAccent else DeckBackground)
-                            .clickable { selectedTab = 0 }
+                            .background(if (selectedTab == 1) DeckAccent else DeckBackground)
+                            .clickable { selectedTab = 1 }
                             .padding(vertical = 8.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "🔌 USB (ADB)",
-                            color = if (selectedTab == 0) TextPrimary else TextSecondary,
+                            text = "📡 Wi-Fi (LAN)",
+                            color = if (selectedTab == 1) TextPrimary else TextSecondary,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 13.sp
                         )
@@ -80,48 +81,45 @@ fun ConnectionDialog(
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(if (selectedTab == 1) DeckAccent else DeckBackground)
-                            .clickable { selectedTab = 1 }
+                            .background(if (selectedTab == 0) DeckAccent else DeckBackground)
+                            .clickable { selectedTab = 0 }
                             .padding(vertical = 8.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "📡 LAN (Wi-Fi)",
-                            color = if (selectedTab == 1) TextPrimary else TextSecondary,
+                            text = "🔌 USB Cable",
+                            color = if (selectedTab == 0) TextPrimary else TextSecondary,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 13.sp
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                if (selectedTab == 0) {
-                    // USB Mode Description
-                    Text(
-                        text = "Connects via USB tunnel on localhost:8765.\nRun ./scripts/usb/connect.sh on your Mac.",
-                        color = TextSecondary,
-                        fontSize = 13.sp,
-                        lineHeight = 18.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    Button(
-                        onClick = {
-                            onConnectUsb()
-                            onDismiss()
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = DeckAccent),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
+                if (!errorMessage.isNullOrBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(DeckError.copy(alpha = 0.15f))
+                            .border(1.dp, DeckError.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                            .padding(10.dp)
                     ) {
-                        Text("Connect via USB", fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "⚠️ $errorMessage",
+                            color = DeckError,
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp
+                        )
                     }
-                } else {
+                    Spacer(modifier = Modifier.height(14.dp))
+                }
+
+                if (selectedTab == 1) {
                     // LAN Mode Input
                     Text(
-                        text = "Enter the local IP address of your Mac:",
+                        text = "Enter your Mac's IP address (shown on MacDeck terminal):",
                         color = TextSecondary,
                         fontSize = 13.sp,
                         modifier = Modifier.align(Alignment.Start)
@@ -133,7 +131,7 @@ fun ConnectionDialog(
                         value = lanIpInput,
                         onValueChange = { lanIpInput = it },
                         singleLine = true,
-                        placeholder = { Text("e.g. 192.168.1.100") },
+                        placeholder = { Text("e.g. 192.168.1.3") },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = DeckAccent,
                             unfocusedBorderColor = DeckSurfaceBorder,
@@ -144,7 +142,7 @@ fun ConnectionDialog(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(18.dp))
 
                     Button(
                         onClick = {
@@ -158,6 +156,28 @@ fun ConnectionDialog(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Connect via Wi-Fi", fontWeight = FontWeight.Bold)
+                    }
+                } else {
+                    // USB Mode Description
+                    Text(
+                        text = "Connects via USB reverse tunnel (127.0.0.1:8765).\nRequires USB Debugging and running ./scripts/usb/connect.sh on your Mac.",
+                        color = TextSecondary,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    Button(
+                        onClick = {
+                            onConnectUsb()
+                            onDismiss()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = DeckAccent),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Connect via USB", fontWeight = FontWeight.Bold)
                     }
                 }
             }

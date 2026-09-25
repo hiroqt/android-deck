@@ -1,36 +1,53 @@
 package com.macdeck.client.ui.deck
 
+import android.content.Context
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.macdeck.client.core.model.DeckControl
 import com.macdeck.client.core.network.ConnectionState
 import com.macdeck.client.core.network.DeckWebSocketClient
-import com.macdeck.client.ui.theme.DeckBackground
-import com.macdeck.client.ui.theme.TextDisabled
+import com.macdeck.client.ui.theme.*
+
+private const val PREFS_NAME = "macdeck_settings"
+private const val KEY_HOST = "saved_host"
+private const val KEY_IS_USB = "saved_is_usb"
 
 @Composable
 fun DeckScreen(
     client: DeckWebSocketClient,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE) }
+
     val connectionState by client.connectionState.collectAsState()
     val currentProfile by client.currentProfile.collectAsState()
     val tileStates by client.tileStates.collectAsState()
+    val lastError by client.lastErrorMessage.collectAsState()
 
-    var isUsbMode by remember { mutableStateOf(true) }
-    var currentHost by remember { mutableStateOf("127.0.0.1") }
+    var isUsbMode by remember {
+        mutableStateOf(prefs.getBoolean(KEY_IS_USB, false))
+    }
+    var currentHost by remember {
+        mutableStateOf(prefs.getString(KEY_HOST, "192.168.1.3") ?: "192.168.1.3")
+    }
     var showDialog by remember { mutableStateOf(false) }
 
-    // Connect initially using USB mode
-    LaunchedEffect(Unit) {
-        client.connect(currentHost, 8765)
+    // Connect initially using saved host
+    LaunchedEffect(currentHost, isUsbMode) {
+        val targetHost = if (isUsbMode) "127.0.0.1" else currentHost
+        client.connect(targetHost, 8765)
     }
 
     // Default starter placeholders if no profile received yet
@@ -38,7 +55,7 @@ fun DeckScreen(
         currentProfile?.controls?.take(6) ?: listOf(
             DeckControl("app-1", "VS Code", "com.microsoft.VSCode"),
             DeckControl("app-2", "Terminal", "com.apple.Terminal"),
-            DeckControl("app-3", "Chrome", "com.google.Chrome"),
+            DeckControl("app-3", "Safari", "com.apple.Safari"),
             DeckControl("app-4", "Finder", "com.apple.finder"),
             DeckControl("app-5", "Settings", "com.apple.systempreferences"),
             DeckControl("app-6", "Music", "com.apple.Music")
@@ -54,10 +71,52 @@ fun DeckScreen(
             // Top Compact Connection Bar
             ConnectionBar(
                 connectionState = connectionState,
-                currentHost = currentHost,
+                currentHost = if (isUsbMode) "127.0.0.1" else currentHost,
                 isUsbMode = isUsbMode,
                 onOpenSettings = { showDialog = true }
             )
+
+            // Prominent notification banner if disconnected
+            if (connectionState != ConnectionState.CONNECTED) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(
+                            if (connectionState == ConnectionState.RECONNECTING)
+                                DeckWarning.copy(alpha = 0.15f)
+                            else
+                                DeckAccent.copy(alpha = 0.15f)
+                        )
+                        .clickable { showDialog = true }
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = when (connectionState) {
+                                ConnectionState.CONNECTING -> "🔄 Connecting to $currentHost:8765..."
+                                ConnectionState.RECONNECTING -> "⚠️ Reconnecting to $currentHost:8765..."
+                                else -> "📡 Tap to set Mac Wi-Fi IP (currently: $currentHost)"
+                            },
+                            color = if (connectionState == ConnectionState.RECONNECTING) DeckWarning else TextPrimary,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+
+                        Text(
+                            text = "Change",
+                            color = DeckAccent,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
 
             // Main Adaptive Full-Screen Deck Grid
             Box(
@@ -80,15 +139,24 @@ fun DeckScreen(
             ConnectionDialog(
                 currentHost = currentHost,
                 isUsbMode = isUsbMode,
+                errorMessage = lastError,
                 onConnectUsb = {
                     isUsbMode = true
                     currentHost = "127.0.0.1"
-                    client.connect(currentHost, 8765)
+                    prefs.edit()
+                        .putBoolean(KEY_IS_USB, true)
+                        .putString(KEY_HOST, "127.0.0.1")
+                        .apply()
+                    client.connect("127.0.0.1", 8765)
                 },
                 onConnectLan = { ip ->
                     isUsbMode = false
                     currentHost = ip
-                    client.connect(currentHost, 8765)
+                    prefs.edit()
+                        .putBoolean(KEY_IS_USB, false)
+                        .putString(KEY_HOST, ip)
+                        .apply()
+                    client.connect(ip, 8765)
                 },
                 onDismiss = { showDialog = false }
             )

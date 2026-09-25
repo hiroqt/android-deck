@@ -33,6 +33,8 @@ public final class ProfileManager: @unchecked Sendable {
 
     public var onProfileChanged: (@Sendable (ProfileSnapshotPayload) -> Void)?
 
+    private var fileWatcher: DispatchSourceFileSystemObject?
+
     public init() {
         let home = FileManager.default.homeDirectoryForCurrentUser
         let dir = home.appendingPathComponent(".macdeck", isDirectory: true)
@@ -46,6 +48,45 @@ public final class ProfileManager: @unchecked Sendable {
             self.profile = ProfileManager.defaultProfile()
             ProfileManager.saveProfile(self.profile, to: configURL)
         }
+
+        startWatchingConfigFile()
+    }
+
+    private func startWatchingConfigFile() {
+        let fd = open(configURL.path, O_EVTONLY)
+        guard fd >= 0 else { return }
+
+        let source = DispatchSource.makeFileSystemObjectSource(
+            fileDescriptor: fd,
+            eventMask: [.write, .extend, .rename, .delete],
+            queue: DispatchQueue.global(qos: .utility)
+        )
+
+        source.setEventHandler { [weak self] in
+            usleep(100_000)
+            self?.reloadFromDisk()
+        }
+
+        source.setCancelHandler {
+            close(fd)
+        }
+
+        source.resume()
+        self.fileWatcher = source
+    }
+
+    public func reloadFromDisk() {
+        lock.lock()
+        if let data = try? Data(contentsOf: configURL),
+           let loaded = try? JSONDecoder().decode(StoredProfile.self, from: data) {
+            self.profile = loaded
+            self.profile.revision += 1
+            print("🔄 [MacDeck] Reloaded profile from disk: \(loaded.slots.map { $0.label }.joined(separator: ", "))")
+        }
+        lock.unlock()
+
+        let snapshot = getCurrentProfileSnapshot()
+        onProfileChanged?(snapshot)
     }
 
     public static func defaultProfile() -> StoredProfile {
