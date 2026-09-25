@@ -1,5 +1,6 @@
 import XCTest
 import AppKit
+import SwiftUI
 @testable import NotchDeck
 
 final class ScreenGeometryTests: XCTestCase {
@@ -67,5 +68,34 @@ final class ScreenGeometryTests: XCTestCase {
         controller.openSlotEditor(slot)
         XCTAssertNotNil(controller.editorWindow)
         XCTAssertEqual(controller.editorWindow?.title, "Edit Slot")
+    }
+
+    @MainActor
+    func testNotchHostingViewHitTestPassThrough() {
+        let dummyView = SwiftUI.Text("Test")
+        let hostingView = NotchHostingView(rootView: dummyView)
+        hostingView.frame = NSRect(x: 0, y: 0, width: 228, height: 56)
+
+        // Point inside the bottom shadow margin (y < 24) should return nil
+        let bottomShadowPoint = NSPoint(x: 100, y: 10)
+        XCTAssertNil(hostingView.hitTest(bottomShadowPoint))
+
+        // Point inside the left shadow margin (x < 24) should return nil
+        let leftShadowPoint = NSPoint(x: 10, y: 40)
+        XCTAssertNil(hostingView.hitTest(leftShadowPoint))
+
+        // Point inside the active notch rect should return the hit view
+        let activePoint = NSPoint(x: 100, y: 40)
+        XCTAssertNotNil(hostingView.hitTest(activePoint))
+    }
+
+    @MainActor
+    func testNotchWindowControllerOpenPhoneSlotEditor() {
+        let controller = NotchWindowController.shared
+        let slot = PhoneDeckSlot(id: "app-1", index: 0, label: "VS Code", bundleId: "com.microsoft.VSCode")
+        controller.openPhoneSlotEditor(slot)
+        XCTAssertNotNil(controller.editorWindow)
+        XCTAssertTrue(controller.editorWindow?.title.contains("Slot 1") == true)
+        controller.editorWindow?.close()
     }
 }
