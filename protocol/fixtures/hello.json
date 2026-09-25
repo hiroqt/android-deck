@@ -1,0 +1,11 @@
+{
+  "protocolVersion": 1,
+  "type": "hello",
+  "requestId": "c0e668ee-7013-4bf5-a7b3-6dc0f898a3e2",
+  "timestamp": 1780000000000,
+  "payload": {
+    "clientName": "Pixel 7 Pro",
+    "platform": "Android",
+    "appVersion": "1.0.0"
+  }
+}

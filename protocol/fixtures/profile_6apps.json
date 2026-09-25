@@ -1,0 +1,51 @@
+{
+  "protocolVersion": 1,
+  "type": "profile.snapshot",
+  "requestId": "8f2441d8-348e-4a69-a1b4-239debf00940",
+  "timestamp": 1780000000100,
+  "payload": {
+    "id": "main-deck",
+    "name": "My Apps",
+    "revision": 1,
+    "maxColumns": 3,
+    "maxRows": 3,
+    "controls": [
+      {
+        "id": "app-vscode",
+        "label": "Visual Studio Code",
+        "bundleId": "com.microsoft.VSCode",
+        "iconPngBase64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+      },
+      {
+        "id": "app-terminal",
+        "label": "Terminal",
+        "bundleId": "com.apple.Terminal",
+        "iconPngBase64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+      },
+      {
+        "id": "app-chrome",
+        "label": "Google Chrome",
+        "bundleId": "com.google.Chrome",
+        "iconPngBase64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+      },
+      {
+        "id": "app-finder",
+        "label": "Finder",
+        "bundleId": "com.apple.finder",
+        "iconPngBase64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+      },
+      {
+        "id": "app-settings",
+        "label": "System Settings",
+        "bundleId": "com.apple.systempreferences",
+        "iconPngBase64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+      },
+      {
+        "id": "app-music",
+        "label": "Music",
+        "bundleId": "com.apple.Music",
+        "iconPngBase64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+      }
+    ]
+  }
+}

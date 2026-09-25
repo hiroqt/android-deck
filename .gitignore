@@ -1,0 +1,26 @@
+# macOS
+.DS_Store
+*.swp
+*~
+
+# Swift / Xcode
+.build/
+Packages/
+*.xcodeproj
+xcuserdata/
+DerivedData/
+.swiftpm/
+
+# Android / Gradle
+.gradle/
+build/
+app/build/
+local.properties
+*.iml
+.idea/
+captures/
+.externalNativeBuild
+.cxx
+
+# MacDeck local storage
+~/.macdeck/

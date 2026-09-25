@@ -1,0 +1,11 @@
+{
+  "protocolVersion": 1,
+  "type": "hello.ack",
+  "requestId": "c0e668ee-7013-4bf5-a7b3-6dc0f898a3e2",
+  "timestamp": 1780000000050,
+  "payload": {
+    "serverName": "MacBook Pro",
+    "osVersion": "macOS 15.0",
+    "appVersion": "1.0.0"
+  }
+}

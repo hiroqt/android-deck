@@ -1,0 +1,12 @@
+{
+  "protocolVersion": 1,
+  "type": "action.result",
+  "requestId": "df393df8-80e2-45e0-b639-65b5976b92a4",
+  "timestamp": 1780000001025,
+  "payload": {
+    "controlId": "app-unknown",
+    "status": "ERROR",
+    "errorCode": "ACTION_UNKNOWN",
+    "errorMessage": "Unknown action for controlId: app-unknown"
+  }
+}
