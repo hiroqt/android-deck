@@ -9,4 +9,4 @@ cd "$ROOT_DIR/macos/NotchDeck"
 swift build -c release
 
 echo "==> Launching NotchDeck..."
-"$ROOT_DIR/macos/NotchDeck/.build/release/NotchDeck"
+"$ROOT_DIR/macos/NotchDeck/.build/release/NotchDeck" "$@"

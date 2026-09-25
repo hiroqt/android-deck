@@ -1734,7 +1734,7 @@ Make it executable: `chmod +x scripts/run_notchdeck.sh`
 Run: `cd macos/NotchDeck && swift test`
 Expected: All tests pass.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add macos/NotchDeck/ scripts/run_notchdeck.sh
@@ -1750,17 +1750,17 @@ git commit -m "feat(notchdeck): implement NotchPanel window architecture, AppDel
 - Run static analysis / compiler checks
 - Verify persistence and clean launch
 
-- [ ] **Step 1: Execute full test suite**
+- [x] **Step 1: Execute full test suite**
 
 Run: `cd macos/NotchDeck && swift test`
 Expected: 100% passing tests.
 
-- [ ] **Step 2: Build release binary**
+- [x] **Step 2: Build release binary**
 
 Run: `cd macos/NotchDeck && swift build -c release`
 Expected: Successful build of `NotchDeck` binary.
 
-- [ ] **Step 3: Commit and update documentation**
+- [x] **Step 3: Commit and update documentation**
 
 ```bash
 git add .
