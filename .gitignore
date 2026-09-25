@@ -24,3 +24,6 @@ captures/
 
 # MacDeck local storage
 ~/.macdeck/
+
+# Superpowers scratch & SDD
+.superpowers/
