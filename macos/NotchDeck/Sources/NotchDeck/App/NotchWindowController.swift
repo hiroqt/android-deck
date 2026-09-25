@@ -1,0 +1,189 @@
+import AppKit
+import SwiftUI
+
+public final class NotchWindowController: NSObject, ObservableObject {
+    public static let shared = NotchWindowController()
+
+    public private(set) var panel: NotchPanel?
+    public private(set) var settingsWindow: NSWindow?
+    public private(set) var editorWindow: NSWindow?
+    private var globalClickMonitor: Any?
+    private var localClickMonitor: Any?
+    @Published public private(set) var isExpanded: Bool = false
+    private var editingSlot: DeckSlot?
+
+    private struct RootWrapperView: View {
+        @ObservedObject var controller: NotchWindowController
+        let hasPhysicalNotch: Bool
+
+        var body: some View {
+            NotchDeckRootView(
+                isExpanded: Binding(
+                    get: { controller.isExpanded },
+                    set: { controller.setExpanded($0) }
+                ),
+                hasPhysicalNotch: hasPhysicalNotch,
+                onOpenSettings: { [weak controller] in controller?.openSettings() },
+                onEditSlot: { [weak controller] slot in controller?.openSlotEditor(slot) }
+            )
+        }
+    }
+
+    public func start() {
+        setupWindow()
+        setupEventMonitors()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(screenParametersChanged),
+            name: NSApplication.didChangeScreenParametersNotification,
+            object: nil
+        )
+    }
+
+    deinit {
+        if let monitor = globalClickMonitor {
+            NSEvent.removeMonitor(monitor)
+        }
+        if let monitor = localClickMonitor {
+            NSEvent.removeMonitor(monitor)
+        }
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    private func setupWindow() {
+        guard let screen = NSScreen.main ?? NSScreen.screens.first else { return }
+        let geo = ScreenGeometry(
+            screenWidth: screen.frame.width,
+            screenHeight: screen.frame.height,
+            topSafeAreaInset: screen.safeAreaInsets.top
+        )
+
+        let initialSize = geo.notchCollapsedSize
+        let initialX = screen.frame.midX - initialSize.width / 2
+        let initialY = screen.frame.maxY - initialSize.height
+
+        let contentRect = NSRect(x: initialX, y: initialY, width: initialSize.width, height: initialSize.height)
+        let panel = NotchPanel(contentRect: contentRect)
+
+        let rootView = RootWrapperView(
+            controller: self,
+            hasPhysicalNotch: geo.hasPhysicalNotch
+        )
+
+        panel.contentView = NSHostingView(rootView: rootView)
+        panel.orderFrontRegardless()
+        self.panel = panel
+    }
+
+    public func setExpanded(_ expanded: Bool) {
+        if !Thread.isMainThread {
+            DispatchQueue.main.async { [weak self] in
+                self?.setExpanded(expanded)
+            }
+            return
+        }
+
+        guard self.isExpanded != expanded else { return }
+        self.isExpanded = expanded
+
+        guard let screen = NSScreen.main ?? NSScreen.screens.first,
+              let panel = self.panel else { return }
+
+        let targetSize = expanded ? CGSize(width: 520, height: 172) : CGSize(width: 180, height: max(32, screen.safeAreaInsets.top))
+        let targetX = screen.frame.midX - targetSize.width / 2
+        let targetY = screen.frame.maxY - targetSize.height
+
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.35
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            panel.animator().setFrame(NSRect(x: targetX, y: targetY, width: targetSize.width, height: targetSize.height), display: true)
+        }
+    }
+
+    private func setupEventMonitors() {
+        // Outside click detector
+        globalClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+            guard let self = self, self.isExpanded else { return }
+            let mouseLoc = NSEvent.mouseLocation
+            if let frame = self.panel?.frame, !frame.contains(mouseLoc) {
+                DispatchQueue.main.async {
+                    self.setExpanded(false)
+                }
+            }
+        }
+
+        localClickMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+            guard let self = self, self.isExpanded else { return event }
+            let mouseLoc = NSEvent.mouseLocation
+            if let frame = self.panel?.frame, !frame.contains(mouseLoc) {
+                DispatchQueue.main.async {
+                    self.setExpanded(false)
+                }
+            }
+            return event
+        }
+    }
+
+    public func openSettings() {
+        if let existing = settingsWindow {
+            existing.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 420, height: 260),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "NotchDeck Preferences"
+        window.center()
+        window.isReleasedWhenClosed = false
+        window.contentView = NSHostingView(rootView: SettingsView())
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        self.settingsWindow = window
+    }
+
+    public func openSlotEditor(_ slot: DeckSlot) {
+        if let existing = editorWindow {
+            existing.close()
+            self.editorWindow = nil
+        }
+
+        let editorWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 360, height: 320),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        editorWindow.title = "Edit Slot"
+        editorWindow.center()
+        editorWindow.isReleasedWhenClosed = false
+
+        var currentSlot = slot
+        let sheet = InlineSlotEditorSheet(
+            slot: Binding(get: { currentSlot }, set: { currentSlot = $0 }),
+            onSave: { [weak self, weak editorWindow] updated in
+                ConfigManager.shared.updateSlot(updated)
+                editorWindow?.close()
+                self?.editorWindow = nil
+            },
+            onCancel: { [weak self, weak editorWindow] in
+                editorWindow?.close()
+                self?.editorWindow = nil
+            }
+        )
+        editorWindow.contentView = NSHostingView(rootView: sheet)
+        editorWindow.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        self.editorWindow = editorWindow
+    }
+
+    @objc private func screenParametersChanged() {
+        guard let screen = NSScreen.main ?? NSScreen.screens.first, let panel = self.panel else { return }
+        let targetSize = isExpanded ? CGSize(width: 520, height: 172) : CGSize(width: 180, height: max(32, screen.safeAreaInsets.top))
+        panel.setFrame(NSRect(x: screen.frame.midX - targetSize.width / 2, y: screen.frame.maxY - targetSize.height, width: targetSize.width, height: targetSize.height), display: true)
+    }
+}
