@@ -135,4 +135,130 @@ final class ViewsTests: XCTestCase {
         hostingView.layout()
         XCTAssertNotNil(hostingView)
     }
+
+    func testCollapsedNotchViewPropertiesAndCallbacks() {
+        var expanded = false
+        let collapsedView = CollapsedNotchView(hasPhysicalNotch: true, onExpand: {
+            expanded = true
+        })
+
+        XCTAssertTrue(collapsedView.hasPhysicalNotch)
+        XCTAssertNotNil(collapsedView.body)
+
+        collapsedView.onExpand()
+        XCTAssertTrue(expanded)
+
+        let noNotchView = CollapsedNotchView(hasPhysicalNotch: false, onExpand: {})
+        XCTAssertFalse(noNotchView.hasPhysicalNotch)
+        XCTAssertNotNil(noNotchView.body)
+
+        let hostingView = NSHostingView(rootView: collapsedView)
+        hostingView.layout()
+        XCTAssertNotNil(hostingView)
+    }
+
+    func testExpandedDeckViewPropertiesAndCallbacks() {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let fileURL = tempDir.appendingPathComponent("config.json")
+        let configManager = ConfigManager(fileURL: fileURL)
+
+        var collapsed = false
+        var settingsOpened = false
+        var editedSlot: DeckSlot? = nil
+
+        let expandedView = ExpandedDeckView(
+            configManager: configManager,
+            onCollapse: { collapsed = true },
+            onOpenSettings: { settingsOpened = true },
+            onEditSlot: { slot in editedSlot = slot }
+        )
+
+        XCTAssertNotNil(expandedView.body)
+
+        expandedView.onCollapse()
+        XCTAssertTrue(collapsed)
+
+        expandedView.onOpenSettings()
+        XCTAssertTrue(settingsOpened)
+
+        let testSlot = configManager.config.slots.first!
+        expandedView.onEditSlot(testSlot)
+        XCTAssertEqual(editedSlot?.id, testSlot.id)
+
+        let editingView = ExpandedDeckView(
+            configManager: configManager,
+            isEditing: true,
+            onCollapse: {},
+            onOpenSettings: {},
+            onEditSlot: { _ in }
+        )
+        XCTAssertNotNil(editingView.body)
+
+        let hostingView = NSHostingView(rootView: expandedView)
+        hostingView.layout()
+        XCTAssertNotNil(hostingView)
+    }
+
+    func testNotchDeckRootViewExpansionStateAndHosting() {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let fileURL = tempDir.appendingPathComponent("config.json")
+        let configManager = ConfigManager(fileURL: fileURL)
+
+        var isExpandedState = false
+        var settingsOpened = false
+        var editedSlot: DeckSlot? = nil
+
+        let isExpandedBinding = Binding<Bool>(
+            get: { isExpandedState },
+            set: { isExpandedState = $0 }
+        )
+
+        let collapsedRoot = NotchDeckRootView(
+            configManager: configManager,
+            isExpanded: isExpandedBinding,
+            hasPhysicalNotch: false,
+            onOpenSettings: { settingsOpened = true },
+            onEditSlot: { slot in editedSlot = slot }
+        )
+
+        XCTAssertFalse(collapsedRoot.hasPhysicalNotch)
+        XCTAssertNotNil(collapsedRoot.body)
+
+        let hostingCollapsed = NSHostingView(rootView: collapsedRoot)
+        hostingCollapsed.layout()
+        XCTAssertNotNil(hostingCollapsed)
+
+        // Switch to expanded
+        isExpandedState = true
+
+        let expandedRoot = NotchDeckRootView(
+            configManager: configManager,
+            isExpanded: isExpandedBinding,
+            hasPhysicalNotch: true,
+            onOpenSettings: { settingsOpened = true },
+            onEditSlot: { slot in editedSlot = slot }
+        )
+
+        XCTAssertTrue(expandedRoot.hasPhysicalNotch)
+        XCTAssertNotNil(expandedRoot.body)
+
+        let hostingExpanded = NSHostingView(rootView: expandedRoot)
+        hostingExpanded.layout()
+        XCTAssertNotNil(hostingExpanded)
+
+        // Verify callbacks passed down
+        expandedRoot.onOpenSettings()
+        XCTAssertTrue(settingsOpened)
+
+        let targetSlot = configManager.config.slots[0]
+        expandedRoot.onEditSlot(targetSlot)
+        XCTAssertEqual(editedSlot?.id, targetSlot.id)
+    }
 }
+
