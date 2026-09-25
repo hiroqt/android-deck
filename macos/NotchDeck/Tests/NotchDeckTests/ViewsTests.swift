@@ -260,5 +260,147 @@ final class ViewsTests: XCTestCase {
         expandedRoot.onEditSlot(targetSlot)
         XCTAssertEqual(editedSlot?.id, targetSlot.id)
     }
+
+    func testInlineSlotEditorSheetDefaultIconMapping() {
+        XCTAssertEqual(InlineSlotEditorSheet.defaultIconFor(action: .appLauncher, target: "com.apple.finder"), "app.fill")
+        XCTAssertEqual(InlineSlotEditorSheet.defaultIconFor(action: .mediaControl, target: "playPause"), "playpause.fill")
+        XCTAssertEqual(InlineSlotEditorSheet.defaultIconFor(action: .systemToggle, target: "micMute"), "mic.fill")
+        XCTAssertEqual(InlineSlotEditorSheet.defaultIconFor(action: .systemToggle, target: "volumeMute"), "speaker.slash.fill")
+        XCTAssertEqual(InlineSlotEditorSheet.defaultIconFor(action: .systemToggle, target: "screenshot"), "camera.fill")
+        XCTAssertEqual(InlineSlotEditorSheet.defaultIconFor(action: .systemToggle, target: "lockScreen"), "lock.fill")
+        XCTAssertEqual(InlineSlotEditorSheet.defaultIconFor(action: .systemToggle, target: "unknownAction"), "lock.fill")
+        XCTAssertEqual(InlineSlotEditorSheet.defaultIconFor(action: .shellScript, target: "echo hi"), "terminal.fill")
+        XCTAssertEqual(InlineSlotEditorSheet.defaultIconFor(action: .urlBookmark, target: "https://apple.com"), "link")
+    }
+
+    func testInlineSlotEditorSheetBuildUpdatedSlot() {
+        let original = DeckSlot(
+            index: 2,
+            title: "Original",
+            actionType: .appLauncher,
+            target: "com.apple.finder",
+            iconName: "folder"
+        )
+
+        let updated = InlineSlotEditorSheet.buildUpdatedSlot(
+            from: original,
+            actionType: .systemToggle,
+            title: "Mute Mic",
+            target: "micMute"
+        )
+
+        XCTAssertEqual(updated.id, original.id)
+        XCTAssertEqual(updated.index, 2)
+        XCTAssertEqual(updated.actionType, .systemToggle)
+        XCTAssertEqual(updated.title, "Mute Mic")
+        XCTAssertEqual(updated.target, "micMute")
+        XCTAssertEqual(updated.iconName, "mic.fill")
+    }
+
+    func testInlineSlotEditorSheetFilterApps() {
+        let apps = [
+            InstalledAppInfo(name: "Safari", bundleIdentifier: "com.apple.Safari", path: "/Applications/Safari.app"),
+            InstalledAppInfo(name: "Xcode", bundleIdentifier: "com.apple.dt.Xcode", path: "/Applications/Xcode.app"),
+            InstalledAppInfo(name: "Terminal", bundleIdentifier: "com.apple.Terminal", path: "/Applications/Utilities/Terminal.app")
+        ]
+
+        let emptySearch = InlineSlotEditorSheet.filterApps(apps, searchText: "")
+        XCTAssertEqual(emptySearch.count, 3)
+
+        let filteredSafari = InlineSlotEditorSheet.filterApps(apps, searchText: "saf")
+        XCTAssertEqual(filteredSafari.count, 1)
+        XCTAssertEqual(filteredSafari.first?.name, "Safari")
+
+        let filteredNone = InlineSlotEditorSheet.filterApps(apps, searchText: "nonexistentapp")
+        XCTAssertTrue(filteredNone.isEmpty)
+    }
+
+    func testInlineSlotEditorSheetViewCallbacksAndHosting() {
+        var testSlot = DeckSlot(
+            index: 0,
+            title: "Old Slot",
+            actionType: .appLauncher,
+            target: "com.apple.finder",
+            iconName: "app.fill"
+        )
+        let slotBinding = Binding<DeckSlot>(
+            get: { testSlot },
+            set: { testSlot = $0 }
+        )
+
+        var cancelled = false
+        var savedSlot: DeckSlot? = nil
+
+        let sheet = InlineSlotEditorSheet(
+            slot: slotBinding,
+            initialApps: [
+                InstalledAppInfo(name: "Calculator", bundleIdentifier: "com.apple.calculator", path: "/Applications/Calculator.app")
+            ],
+            onSave: { updated in savedSlot = updated },
+            onCancel: { cancelled = true }
+        )
+
+        let hostingView = NSHostingView(rootView: sheet)
+        hostingView.layout()
+        XCTAssertNotNil(hostingView)
+
+        sheet.onCancel()
+        XCTAssertTrue(cancelled)
+
+        let newSlot = DeckSlot(
+            index: 0,
+            title: "New Label",
+            actionType: .urlBookmark,
+            target: "https://apple.com",
+            iconName: "link"
+        )
+        sheet.onSave(newSlot)
+        XCTAssertEqual(savedSlot?.title, "New Label")
+        XCTAssertEqual(savedSlot?.target, "https://apple.com")
+    }
+
+    func testSettingsViewInitializationAndHosting() {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let fileURL = tempDir.appendingPathComponent("config.json")
+        let configManager = ConfigManager(fileURL: fileURL)
+
+        let settingsView = SettingsView(configManager: configManager)
+        XCTAssertNotNil(settingsView.body)
+
+        let hostingView = NSHostingView(rootView: settingsView)
+        hostingView.layout()
+        XCTAssertNotNil(hostingView)
+    }
+
+    func testSettingsViewConfigUpdatesAndReset() {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let fileURL = tempDir.appendingPathComponent("config.json")
+        let configManager = ConfigManager(fileURL: fileURL)
+
+        XCTAssertEqual(configManager.config.gridColumns, 5)
+
+        // Modify columns
+        var config = configManager.config
+        config.gridColumns = 6
+        config.appearance.specularIntensity = 0.8
+        config.appearance.ambientBacklightEnabled = false
+        try? configManager.saveConfig(config)
+
+        XCTAssertEqual(configManager.config.gridColumns, 6)
+        XCTAssertEqual(configManager.config.appearance.specularIntensity, 0.8)
+        XCTAssertFalse(configManager.config.appearance.ambientBacklightEnabled)
+
+        // Reset to default
+        configManager.resetToDefault()
+        XCTAssertEqual(configManager.config.gridColumns, 5)
+        XCTAssertEqual(configManager.config.slots.count, 10)
+        XCTAssertTrue(configManager.config.appearance.ambientBacklightEnabled)
+    }
 }
 
