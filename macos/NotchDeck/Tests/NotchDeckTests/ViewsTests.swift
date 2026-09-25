@@ -402,5 +402,149 @@ final class ViewsTests: XCTestCase {
         XCTAssertEqual(configManager.config.slots.count, 10)
         XCTAssertTrue(configManager.config.appearance.ambientBacklightEnabled)
     }
+
+    func testPhoneDeckServiceInitializationAndDefaults() {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let service = PhoneDeckService(baseDirectory: tempDir)
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05))
+
+        XCTAssertEqual(service.slots.count, 6)
+        XCTAssertEqual(service.slots[0].label, "VS Code")
+        XCTAssertEqual(service.slots[0].bundleId, "com.microsoft.VSCode")
+        XCTAssertFalse(service.slots[0].isEmpty)
+
+        let profileFile = tempDir.appendingPathComponent("profile.json")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: profileFile.path))
+    }
+
+    func testPhoneDeckServiceSetAndClearSlot() {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let service = PhoneDeckService(baseDirectory: tempDir)
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05))
+
+        // Assign a new app to slot 1
+        let calcApp = InstalledAppInfo(name: "Calculator", bundleIdentifier: "com.apple.calculator", path: "/System/Applications/Calculator.app", icon: nil)
+        service.setSlotApp(index: 1, app: calcApp)
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05))
+
+        XCTAssertEqual(service.slots[1].label, "Calculator")
+        XCTAssertEqual(service.slots[1].bundleId, "com.apple.calculator")
+        XCTAssertFalse(service.slots[1].isEmpty)
+
+        // Clear slot 1 via minus badge logic
+        service.clearSlot(index: 1)
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05))
+
+        XCTAssertTrue(service.slots[1].isEmpty)
+        XCTAssertEqual(service.slots[1].label, "")
+        XCTAssertEqual(service.slots[1].bundleId, "")
+
+        // Reset defaults
+        service.resetDefaults()
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05))
+
+        XCTAssertEqual(service.slots[1].label, "Terminal")
+        XCTAssertEqual(service.slots[1].bundleId, "com.apple.Terminal")
+    }
+
+    func testPhoneDeckServiceLoadStatusFile() {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let service = PhoneDeckService(baseDirectory: tempDir)
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05))
+
+        XCTAssertFalse(service.isDeviceConnected)
+
+        // Write a connected status.json
+        let statusFile = tempDir.appendingPathComponent("status.json")
+        let status = DeviceStatusInfo(connected: true, clientName: "Pixel 8 Pro", clientCount: 1)
+        let data = try? JSONEncoder().encode(status)
+        try? data?.write(to: statusFile)
+
+        service.loadStatus()
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05))
+
+        XCTAssertTrue(service.isDeviceConnected)
+        XCTAssertEqual(service.connectedDeviceName, "Pixel 8 Pro")
+        XCTAssertEqual(service.clientCount, 1)
+    }
+
+    func testDeckSlotCardViewConfiguredAndEmptyState() {
+        let configuredSlot = PhoneDeckSlot(id: "app-1", index: 0, label: "VS Code", bundleId: "com.microsoft.VSCode")
+        var edited = false
+        var removed = false
+
+        let configuredCard = DeckSlotCardView(
+            slot: configuredSlot,
+            onEdit: { edited = true },
+            onRemove: { removed = true }
+        )
+        XCTAssertFalse(configuredSlot.isEmpty)
+        XCTAssertNotNil(configuredCard.body)
+
+        configuredCard.onEdit()
+        XCTAssertTrue(edited)
+
+        configuredCard.onRemove()
+        XCTAssertTrue(removed)
+
+        let hosting1 = NSHostingView(rootView: configuredCard)
+        hosting1.layout()
+        XCTAssertNotNil(hosting1)
+
+        // Empty state card
+        let emptySlot = PhoneDeckSlot(id: "app-2", index: 1, label: "", bundleId: "")
+        XCTAssertTrue(emptySlot.isEmpty)
+
+        var emptyTapped = false
+        let emptyCard = DeckSlotCardView(
+            slot: emptySlot,
+            onEdit: { emptyTapped = true },
+            onRemove: {}
+        )
+        XCTAssertNotNil(emptyCard.body)
+
+        emptyCard.onEdit()
+        XCTAssertTrue(emptyTapped)
+
+        let hosting2 = NSHostingView(rootView: emptyCard)
+        hosting2.layout()
+        XCTAssertNotNil(hosting2)
+    }
+
+    func testPhoneAppPickerSheetSelectionAndCancel() {
+        let mockApp = InstalledAppInfo(name: "Xcode", bundleIdentifier: "com.apple.dt.Xcode", path: "/Applications/Xcode.app", icon: nil)
+        var selectedApp: InstalledAppInfo? = nil
+        var cancelled = false
+
+        let sheet = PhoneAppPickerSheet(
+            slotIndex: 0,
+            currentBundleId: "",
+            initialApps: [mockApp],
+            onSelectApp: { app in selectedApp = app },
+            onCancel: { cancelled = true }
+        )
+        XCTAssertNotNil(sheet.body)
+
+        sheet.onSelectApp(mockApp)
+        XCTAssertEqual(selectedApp?.name, "Xcode")
+        XCTAssertEqual(selectedApp?.bundleIdentifier, "com.apple.dt.Xcode")
+
+        sheet.onCancel()
+        XCTAssertTrue(cancelled)
+
+        let hosting = NSHostingView(rootView: sheet)
+        hosting.layout()
+        XCTAssertNotNil(hosting)
+    }
 }
+
 

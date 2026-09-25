@@ -8,8 +8,8 @@ final class ScreenGeometryTests: XCTestCase {
         XCTAssertTrue(geo.hasPhysicalNotch)
         XCTAssertEqual(geo.notchCollapsedSize.height, 32)
         XCTAssertEqual(geo.notchCollapsedSize.width, 180)
-        XCTAssertEqual(geo.notchExpandedSize.width, 520)
-        XCTAssertEqual(geo.notchExpandedSize.height, 172)
+        XCTAssertEqual(geo.notchExpandedSize.width, 480)
+        XCTAssertEqual(geo.notchExpandedSize.height, 224)
     }
 
     func testExternalDisplayTreatedAsSimulatedNotch() {
@@ -17,8 +17,8 @@ final class ScreenGeometryTests: XCTestCase {
         XCTAssertFalse(geo.hasPhysicalNotch)
         XCTAssertEqual(geo.notchCollapsedSize.height, 34)
         XCTAssertEqual(geo.notchCollapsedSize.width, 180)
-        XCTAssertEqual(geo.notchExpandedSize.width, 520)
-        XCTAssertEqual(geo.notchExpandedSize.height, 172)
+        XCTAssertEqual(geo.notchExpandedSize.width, 480)
+        XCTAssertEqual(geo.notchExpandedSize.height, 224)
     }
 
     func testPhysicalNotchWithCustomHeightAboveMinimum() {

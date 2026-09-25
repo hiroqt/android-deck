@@ -4,30 +4,23 @@ A high-performance macOS desktop productivity suite providing both physical disp
 
 ---
 
-## NotchDeck (macOS Native Liquid Glass Notch Stream Deck)
+## NotchDeck (macOS Native Liquid Glass Notch Stream Deck Configurator)
 
-**NotchDeck** transforms the MacBook camera notch (or simulated top-bar notch on external displays) into an interactive, fluid Liquid Glass HUD housing a 10-slot (2×5) quick-action Stream Deck.
+**NotchDeck** transforms the MacBook camera notch (or simulated top-bar notch on external displays) into an interactive, fluid Liquid Glass HUD that serves as the visual configurator for your connected Android Stream Deck (**MacDeck**).
 
 ![macOS 14+](https://img.shields.io/badge/macOS-14.0%2B-blue)
 ![Swift 5.9+](https://img.shields.io/badge/Swift-5.9%2B-orange)
-![Tests](https://img.shields.io/badge/tests-35%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-40%20passing-brightgreen)
 
 ### Key Features
 
-- **Fluid Dynamic Island / Liquid Glass HUD**: Anchors directly below or behind the physical MacBook display notch (with automatic hardware notch detection via `safeAreaInsets` or fallback top-bar pill on non-notched external screens).
-- **10 Interactive Action Slots (2×5 Grid)**: Fast tactile execution with visual compression feedback and configurable SF Symbol icons and custom accent colors.
-- **5 Action Types Supported**:
-  1. **System Controls**: Volume Up / Down / Mute, Brightness Up / Down, Play / Pause media playback, Lock Screen, Screenshot.
-  2. **App Launcher**: Instant launch or focus of any installed application using `NSWorkspace`.
-  3. **Apple Shortcuts**: Trigger macOS Siri Shortcuts via `shortcuts run <name>`.
-  4. **URL Bookmarks**: Direct browser navigation to bookmarks or custom URL schemes.
-  5. **Shell Scripts**: Securely execute custom bash/zsh scripts and commands.
-- **Interactive Expand & Collapse**:
-  - Hover or trigger via hotkey (`⌘D`) to smoothly expand from compact notch pill (180×32pt) to full HUD (520×172pt) with spring damping physics.
-  - Auto-collapses on outside click, mouse departure, or Escape key.
-- **Inline Live Slot Editor**: Right-click or gear icon on any tile opens an inline editor sheet to customize title, icon, action type, color, and target (with instant search across all installed Mac applications).
-- **Preferences & Customization**: Configure glass material, blur radius, tint color, background opacity, and animation physics.
-- **Robust Persistence**: Settings and slot configurations are saved atomically to `~/Library/Application Support/NotchDeck/config.json`.
+- **Live Device Status in Notch**: Clicking the notch HUD reveals your phone's connection status in real-time (e.g., `📱 Pixel 8 Pro (Connected)` or `⚪ Waiting for Phone...`).
+- **6-Slot Android Phone Configurator (3×2 Grid)**: Represents exactly what appears on your Android phone's Stream Deck screen with authentic macOS app icons.
+- **Minus Badge (`-`) Removal**: Configured app cards display a discreet red minus badge in the top right to instantly remove or clear an app from that slot, broadcasting immediately to the phone.
+- **Empty State (`+` Card)**: Empty slots feature a subtle dashed-border liquid glass card with a `+` icon that opens an instant Mac app picker sheet.
+- **Liquid Glass Aesthetic & Roomy Layout**: Subtle acrylic frosted glass cards with specular highlight rims and expanded height (480×224pt) to ensure comfortable spacing and zero text or card overlap.
+- **Fluid Dynamic Island Transition**: Smooth spring physics (`.interactiveSpring(response: 0.36, dampingFraction: 0.74)`) expanding from the compact notch pill (180×32pt) to the full configurator HUD.
+- **Instant Profile Synchronization**: Seamlessly watches and synchronizes with `~/.macdeck/profile.json` and `~/.macdeck/status.json`, reflecting updates across Mac and Android in real-time.
 - **Status Bar Companion**: Non-activating `NSPanel` floating at `.statusBar` level across all macOS spaces and full-screen apps, accompanied by a lightweight menu bar item.
 
 ### NotchDeck Quickstart
@@ -132,7 +125,7 @@ Comprehensive architectural design and engineering specifications are located in
 Run all unit tests, protocol validations, and compilation checks across the entire repository:
 
 ```bash
-# 1. NotchDeck macOS Swift unit tests (35 tests)
+# 1. NotchDeck macOS Swift unit tests (40 tests)
 cd macos/NotchDeck && swift test
 
 # 2. NotchDeck Release binary build

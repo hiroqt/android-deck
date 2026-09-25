@@ -22,6 +22,6 @@ public struct ScreenGeometry: Equatable {
     }
 
     public var notchExpandedSize: CGSize {
-        return CGSize(width: 520, height: 172)
+        return CGSize(width: 480, height: 224)
     }
 }

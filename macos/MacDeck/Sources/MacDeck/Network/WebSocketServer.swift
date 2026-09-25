@@ -73,6 +73,7 @@ public final class WebSocketServer: @unchecked Sendable {
         lock.unlock()
 
         print("📱 [MacDeck] New client connected. Total clients: \(count)")
+        updateStatusFile(connected: true, clientName: "Android Device", clientCount: count)
         session.start()
 
         // Send hello.ack and initial profile snapshot to freshly connected client
@@ -85,6 +86,25 @@ public final class WebSocketServer: @unchecked Sendable {
         let count = sessions.count
         lock.unlock()
         print("🔌 [MacDeck] Client disconnected. Total clients: \(count)")
+        updateStatusFile(connected: count > 0, clientName: count > 0 ? "Android Device" : nil, clientCount: count)
+    }
+
+    private func updateStatusFile(connected: Bool, clientName: String?, clientCount: Int) {
+        let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".macdeck", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let statusURL = dir.appendingPathComponent("status.json")
+        var statusObj: [String: Any] = [
+            "connected": connected,
+            "clientCount": clientCount,
+            "port": port,
+            "timestamp": Date().timeIntervalSince1970
+        ]
+        if let name = clientName {
+            statusObj["clientName"] = name
+        }
+        if let data = try? JSONSerialization.data(withJSONObject: statusObj, options: [.prettyPrinted]) {
+            try? data.write(to: statusURL, options: .atomic)
+        }
     }
 
     private func sendInitialProfile(to session: ClientSession) {
@@ -125,6 +145,16 @@ public final class WebSocketServer: @unchecked Sendable {
 
         switch raw.type {
         case "hello":
+            var clientName = "Android Device"
+            if let helloEnv = try? JSONDecoder().decode(Envelope<HelloPayload>.self, from: data),
+               let name = helloEnv.payload.clientName, !name.isEmpty {
+                clientName = name
+            }
+            lock.lock()
+            let count = sessions.count
+            lock.unlock()
+            updateStatusFile(connected: true, clientName: clientName, clientCount: count)
+
             let ack = Envelope(
                 type: "hello.ack",
                 requestId: raw.requestId,

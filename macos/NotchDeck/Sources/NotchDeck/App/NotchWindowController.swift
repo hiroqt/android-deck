@@ -10,7 +10,6 @@ public final class NotchWindowController: NSObject, ObservableObject {
     private var globalClickMonitor: Any?
     private var localClickMonitor: Any?
     @Published public private(set) var isExpanded: Bool = false
-    private var editingSlot: DeckSlot?
 
     private struct RootWrapperView: View {
         @ObservedObject var controller: NotchWindowController
@@ -24,6 +23,7 @@ public final class NotchWindowController: NSObject, ObservableObject {
                 ),
                 hasPhysicalNotch: hasPhysicalNotch,
                 onOpenSettings: { [weak controller] in controller?.openSettings() },
+                onSelectPhoneSlot: { [weak controller] slot in controller?.openPhoneSlotEditor(slot) },
                 onEditSlot: { [weak controller] slot in controller?.openSlotEditor(slot) }
             )
         }
@@ -89,7 +89,7 @@ public final class NotchWindowController: NSObject, ObservableObject {
         guard let screen = NSScreen.main ?? NSScreen.screens.first,
               let panel = self.panel else { return }
 
-        let targetSize = expanded ? CGSize(width: 520, height: 172) : CGSize(width: 180, height: max(32, screen.safeAreaInsets.top))
+        let targetSize = expanded ? CGSize(width: 480, height: 224) : CGSize(width: 180, height: max(32, screen.safeAreaInsets.top))
         let targetX = screen.frame.midX - targetSize.width / 2
         let targetY = screen.frame.maxY - targetSize.height
 
@@ -146,44 +146,79 @@ public final class NotchWindowController: NSObject, ObservableObject {
         self.settingsWindow = window
     }
 
+    public func openPhoneSlotEditor(_ slot: PhoneDeckSlot) {
+        if let existing = editorWindow {
+            existing.close()
+            self.editorWindow = nil
+        }
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 360, height: 290),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Select App for Slot \(slot.index + 1)"
+        window.center()
+        window.isReleasedWhenClosed = false
+
+        let sheet = PhoneAppPickerSheet(
+            slotIndex: slot.index,
+            currentBundleId: slot.bundleId,
+            onSelectApp: { [weak self, weak window] app in
+                PhoneDeckService.shared.setSlotApp(index: slot.index, app: app)
+                window?.close()
+                self?.editorWindow = nil
+            },
+            onCancel: { [weak self, weak window] in
+                window?.close()
+                self?.editorWindow = nil
+            }
+        )
+        window.contentView = NSHostingView(rootView: sheet)
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        self.editorWindow = window
+    }
+
     public func openSlotEditor(_ slot: DeckSlot) {
         if let existing = editorWindow {
             existing.close()
             self.editorWindow = nil
         }
 
-        let editorWindow = NSWindow(
+        let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 360, height: 320),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
         )
-        editorWindow.title = "Edit Slot"
-        editorWindow.center()
-        editorWindow.isReleasedWhenClosed = false
+        window.title = "Edit Slot"
+        window.center()
+        window.isReleasedWhenClosed = false
 
         var currentSlot = slot
         let sheet = InlineSlotEditorSheet(
             slot: Binding(get: { currentSlot }, set: { currentSlot = $0 }),
-            onSave: { [weak self, weak editorWindow] updated in
+            onSave: { [weak self, weak window] updated in
                 ConfigManager.shared.updateSlot(updated)
-                editorWindow?.close()
+                window?.close()
                 self?.editorWindow = nil
             },
-            onCancel: { [weak self, weak editorWindow] in
-                editorWindow?.close()
+            onCancel: { [weak self, weak window] in
+                window?.close()
                 self?.editorWindow = nil
             }
         )
-        editorWindow.contentView = NSHostingView(rootView: sheet)
-        editorWindow.makeKeyAndOrderFront(nil)
+        window.contentView = NSHostingView(rootView: sheet)
+        window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-        self.editorWindow = editorWindow
+        self.editorWindow = window
     }
 
     @objc private func screenParametersChanged() {
-        guard let screen = NSScreen.main ?? NSScreen.screens.first, let panel = self.panel else { return }
-        let targetSize = isExpanded ? CGSize(width: 520, height: 172) : CGSize(width: 180, height: max(32, screen.safeAreaInsets.top))
+        guard let screen = NSScreen.main, let panel = self.panel else { return }
+        let targetSize = isExpanded ? CGSize(width: 480, height: 224) : CGSize(width: 180, height: max(32, screen.safeAreaInsets.top))
         panel.setFrame(NSRect(x: screen.frame.midX - targetSize.width / 2, y: screen.frame.maxY - targetSize.height, width: targetSize.width, height: targetSize.height), display: true)
     }
 }
