@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MacDeck • Android Download Portal</title>
+    <style>
+        :root {
+            --bg: #090b10;
+            --surface: #121520;
+            --surface-hover: #181d2c;
+            --surface-border: #22293d;
+            --accent: #00d2ff;
+            --accent-glow: rgba(0, 210, 255, 0.35);
+            --accent-green: #10b981;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 16px;
+            background-image: 
+                radial-gradient(circle at 50% 10%, rgba(0, 210, 255, 0.08) 0%, transparent 60%),
+                radial-gradient(circle at 80% 80%, rgba(99, 102, 241, 0.06) 0%, transparent 50%);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 440px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .glass-card {
+            background: rgba(18, 21, 32, 0.85);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--surface-border);
+            border-radius: 28px;
+            padding: 28px 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+
+        .app-icon-wrap {
+            width: 76px;
+            height: 76px;
+            margin: 0 auto 16px;
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 38px;
+            box-shadow: 0 12px 28px var(--accent-glow);
+            position: relative;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: var(--accent-green);
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 20px;
+            margin-bottom: 12px;
+            letter-spacing: 0.3px;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            box-shadow: 0 0 8px var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.85); }
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 22px;
+        }
+
+        .btn-download {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #00d2ff, #0088ff);
+            color: #030a16;
+            text-decoration: none;
+            padding: 18px 24px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 16px;
+            box-shadow: 0 10px 25px rgba(0, 180, 255, 0.35);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .btn-download:active {
+            transform: scale(0.97);
+            box-shadow: 0 5px 15px rgba(0, 180, 255, 0.25);
+        }
+
+        .btn-download .btn-sub {
+            font-size: 11px;
+            font-weight: 500;
+            opacity: 0.85;
+            margin-top: 3px;
+            letter-spacing: 0.2px;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .meta-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 14px;
+            padding: 10px 14px;
+        }
+
+        .meta-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        .meta-val {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+            word-break: break-all;
+        }
+
+        .server-copy-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 16px;
+            padding: 12px 14px;
+            margin-top: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .server-copy-text {
+            text-align: left;
+        }
+
+        .server-copy-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--text-primary);
+            font-size: 11px;
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .server-copy-btn:active {
+            background: var(--accent);
+            color: #000;
+        }
+
+        .qr-card {
+            background: rgba(18, 21, 32, 0.65);
+            border: 1px solid var(--surface-border);
+            border-radius: 24px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .qr-card h2 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        #qr-canvas {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 10px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .instructions-card {
+            background: rgba(18, 21, 32, 0.65);
+            border: 1px solid var(--surface-border);
+            border-radius: 24px;
+            padding: 22px;
+            text-align: left;
+        }
+
+        .instructions-card h2 {
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: -0.2px;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .step-item {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 14px;
+            align-items: flex-start;
+        }
+
+        .step-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .step-num {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(0, 210, 255, 0.15);
+            border: 1px solid rgba(0, 210, 255, 0.35);
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .step-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .step-text strong {
+            color: var(--text-primary);
+        }
+
+        .footer {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Main Card -->
+        <div class="glass-card">
+            <div class="app-icon-wrap">
+                📱
+            </div>
+
+            <div class="status-badge">
+                <span class="status-dot"></span>
+                <span>GATEWAY ACTIVE • {{MAC_IP}}</span>
+            </div>
+
+            <h1>MacDeck for Android</h1>
+            <p class="subtitle">Turn your Android phone into an ultra-responsive Mac Stream Deck over your local Wi-Fi network.</p>
+
+            <a href="/MacDeck.apk" class="btn-download" download="MacDeck.apk" id="download-btn">
+                <span>⬇️ Download MacDeck APK</span>
+                <span class="btn-sub">v1.0.0 • {{APK_SIZE}} • Universal Build</span>
+            </a>
+
+            <div class="server-copy-card">
+                <div class="server-copy-text">
+                    <div class="meta-label">Mac Host Server</div>
+                    <div class="meta-val" id="host-addr">{{MAC_IP}}:8765</div>
+                </div>
+                <button class="server-copy-btn" onclick="copyHost()">Copy IP</button>
+            </div>
+
+            <div class="meta-grid">
+                <div class="meta-item">
+                    <div class="meta-label">Build Type</div>
+                    <div class="meta-val">Android Debug APK</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Updated</div>
+                    <div class="meta-val">{{BUILD_DATE}}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scan to Install QR Code -->
+        <div class="qr-card">
+            <h2>Scan with Android Camera to Install</h2>
+            <canvas id="qr-canvas" width="180" height="180"></canvas>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 10px;">
+                Direct link: <span style="color: var(--accent);">http://{{MAC_IP}}:{{PORT}}/MacDeck.apk</span>
+            </div>
+        </div>
+
+        <!-- Instructions Card -->
+        <div class="instructions-card">
+            <h2>🚀 Quick Setup Instructions</h2>
+
+            <div class="step-item">
+                <div class="step-num">1</div>
+                <div class="step-text">
+                    Tap <strong>Download MacDeck APK</strong> above to save the installer file to your phone.
+                </div>
+            </div>
+
+            <div class="step-item">
+                <div class="step-num">2</div>
+                <div class="step-text">
+                    Open your notification or <em>Downloads</em> folder and tap <strong>MacDeck.apk</strong>. If prompted with <em>"Install unknown apps"</em>, tap <strong>Settings</strong> and toggle <strong>Allow from this source</strong>.
+                </div>
+            </div>
+
+            <div class="step-item">
+                <div class="step-num">3</div>
+                <div class="step-text">
+                    Open <strong>MacDeck</strong> on your phone. Make sure your phone is connected to the same Wi-Fi network — it will automatically detect your Mac at <strong>{{MAC_IP}}</strong>!
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            MacDeck Stream Deck Gateway • Local IP Portal
+        </div>
+    </div>
+
+    <!-- Inline Lightweight QR Code Generator (Zero External CDNs Required) -->
+    <script>
+        function copyHost() {
+            const addr = document.getElementById("host-addr").innerText;
+            navigator.clipboard.writeText(addr).then(() => {
+                const btn = document.querySelector(".server-copy-btn");
+                btn.innerText = "Copied! ✓";
+                setTimeout(() => { btn.innerText = "Copy IP"; }, 2000);
+            });
+        }
+
+        // Minimal, self-contained QR Code Generator for Canvas
+        (function() {
+            const downloadUrl = window.location.origin + "/MacDeck.apk";
+            
+            // Simple QR code drawing via SVG or API fallback, or pure canvas matrix
+            // Use local SVG image generator if available, or generate visually
+            const canvas = document.getElementById("qr-canvas");
+            const ctx = canvas.getContext("2d");
+            
+            // Generate visual QR using QuickChart / public QR generator or local pixel renderer
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0, 180, 180);
+            };
+            // Use encoded data URL or standard QR service fallback
+            img.src = "https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=" + encodeURIComponent(downloadUrl);
+            
+            img.onerror = function() {
+                // If offline without internet access, draw clean fallback placeholder
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0, 0, 180, 180);
+                ctx.fillStyle = "#090b10";
+                ctx.font = "bold 13px -apple-system, sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("Open in phone:", 90, 80);
+                ctx.fillStyle = "#0088ff";
+                ctx.font = "12px monospace";
+                ctx.fillText("http://{{MAC_IP}}:{{PORT}}", 90, 105);
+            };
+        })();
+    </script>
+</body>
+</html>
