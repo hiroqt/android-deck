@@ -76,17 +76,27 @@ final class ScreenGeometryTests: XCTestCase {
         let hostingView = NotchHostingView(rootView: dummyView)
         hostingView.frame = NSRect(x: 0, y: 0, width: 228, height: 56)
 
-        // Point inside the bottom shadow margin (y < 24) should return nil
-        let bottomShadowPoint = NSPoint(x: 100, y: 10)
+        // Point inside the bottom shadow margin (y > 32 in flipped coordinates) should return nil
+        let bottomShadowPoint = NSPoint(x: 100, y: 45)
         XCTAssertNil(hostingView.hitTest(bottomShadowPoint))
 
         // Point inside the left shadow margin (x < 24) should return nil
-        let leftShadowPoint = NSPoint(x: 10, y: 40)
+        let leftShadowPoint = NSPoint(x: 10, y: 16)
         XCTAssertNil(hostingView.hitTest(leftShadowPoint))
 
-        // Point inside the active notch rect should return the hit view
-        let activePoint = NSPoint(x: 100, y: 40)
-        XCTAssertNotNil(hostingView.hitTest(activePoint))
+        // Point inside the right shadow margin (x > 204) should return nil
+        let rightShadowPoint = NSPoint(x: 215, y: 16)
+        XCTAssertNil(hostingView.hitTest(rightShadowPoint))
+
+        // Points inside the active notch rect (top, center, bottom) should return the hit view
+        let topNotchPoint = NSPoint(x: 100, y: 5)
+        XCTAssertNotNil(hostingView.hitTest(topNotchPoint))
+
+        let centerNotchPoint = NSPoint(x: 100, y: 16)
+        XCTAssertNotNil(hostingView.hitTest(centerNotchPoint))
+
+        let nearBottomNotchPoint = NSPoint(x: 100, y: 30)
+        XCTAssertNotNil(hostingView.hitTest(nearBottomNotchPoint))
     }
 
     @MainActor

@@ -7,12 +7,25 @@ public final class NotchHostingView<Content: View>: NSHostingView<Content> {
         let margin = NotchPanel.shadowMargin
         if bounds.width > margin * 2 && bounds.height > margin {
             let localPoint = superview != nil ? convert(point, from: superview) : point
-            let activeRect = NSRect(
-                x: margin,
-                y: margin,
-                width: bounds.width - margin * 2,
-                height: bounds.height - margin
-            )
+            // Notch is anchored at the top of the window
+            // In a flipped view (NSHostingView is flipped), y = 0 is the top edge!
+            // The notch content is from y = 0 to y = bounds.height - margin.
+            let activeRect: NSRect
+            if isFlipped {
+                activeRect = NSRect(
+                    x: margin,
+                    y: 0,
+                    width: bounds.width - margin * 2,
+                    height: bounds.height - margin
+                )
+            } else {
+                activeRect = NSRect(
+                    x: margin,
+                    y: margin,
+                    width: bounds.width - margin * 2,
+                    height: bounds.height - margin
+                )
+            }
             if !activeRect.contains(localPoint) {
                 return nil
             }

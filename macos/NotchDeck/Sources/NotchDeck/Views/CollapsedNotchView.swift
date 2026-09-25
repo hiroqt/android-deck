@@ -34,6 +34,7 @@ public struct CollapsedNotchView: View {
                     .frame(width: 4, height: 4)
             }
             .frame(width: 180, height: 32)
+            .background(Color.black.opacity(0.001))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

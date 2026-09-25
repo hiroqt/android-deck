@@ -70,6 +70,14 @@ public struct NotchDeckRootView: View {
                 width: isExpanded ? 480 : 180,
                 height: isExpanded ? 224 : 32
             )
+            .contentShape(Rectangle())
+            .onTapGesture {
+                if !isExpanded {
+                    withAnimation(.spring(response: 0.38, dampingFraction: 0.76, blendDuration: 0.1)) {
+                        isExpanded = true
+                    }
+                }
+            }
 
             Spacer(minLength: 0)
         }
