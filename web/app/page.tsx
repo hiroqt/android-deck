@@ -159,7 +159,7 @@ export default function HomePage() {
                 download="NotchDeck.dmg"
               >
                 <AppleLetterIcon className="w-3.5 h-3.5 inline-block -mt-0.5 mr-1" />
-                <span>Download for Mac (.dmg)</span>
+                <span>Download</span>
                 <span aria-hidden="true">↓</span>
               </a>
             </div>
@@ -238,7 +238,7 @@ export default function HomePage() {
               <p>Set up six controls for the apps and actions you reach for all day.</p>
             </div>
             <a className="button" href="/downloads/NotchDeck.dmg" download="NotchDeck.dmg">
-              <span>Download NotchDeck for Mac (.dmg)</span>
+              <span>Get NotchDeck</span>
               <span className="amount" aria-hidden="true">↓</span>
             </a>
           </div>
