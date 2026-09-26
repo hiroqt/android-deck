@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'Poppins';
+  src: url('/assets/Poppins-Regular.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Poppins';
+  src: url('/assets/Poppins-SemiBold.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Poppins';
+  src: url('/assets/Poppins-Bold.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+:root {
+  --bg-page: #f9fafd;
+  --surface-white: #ffffff;
+  --border-subtle: #e5e9f2;
+  --border-card: #dbe2ea;
+  --ink-primary: #101828;
+  --ink-secondary: #475467;
+  --ink-muted: #98a2b3;
+  --ink-slate: #1d2939;
+  --accent-green: #039855;
+  --font-poppins: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px;
+  overflow-x: hidden;
+  background-color: var(--bg-page);
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-page);
+  color: var(--ink-primary);
+  font-family: var(--font-poppins);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+.shell {
+  width: min(1200px, calc(100% - 48px));
+  margin-inline: auto;
+}
+
+/* Precision Geometric Cursor */
+.precision-cursor {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.cursor-ring {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  margin: -16px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(29, 41, 57, 0.45);
+  pointer-events: none;
+  will-change: transform;
+  transition: width 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              height 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              margin 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s ease;
+}
+
+.cursor-dot {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px;
+  border-radius: 50%;
+  background: var(--ink-slate);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.precision-cursor[data-hover="true"] .cursor-ring {
+  width: 48px;
+  height: 48px;
+  margin: -24px;
+  border-color: rgba(29, 41, 57, 0.85);
+  background: rgba(29, 41, 57, 0.05);
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  html.has-precision-cursor,
+  html.has-precision-cursor * {
+    cursor: none !important;
+  }
+  html.has-precision-cursor :is(input, textarea, [contenteditable="true"]) {
+    cursor: text !important;
+  }
+}
