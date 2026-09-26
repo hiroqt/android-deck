@@ -472,14 +472,10 @@ export default function DesktopNotchMockup({
                     <span className="text-[10.5px] font-semibold text-white/90 tracking-tight">Deck</span>
                   </div>
 
-                  {/* Right: Phone Battery */}
-                  <div className="flex items-center gap-1 bg-white/10 px-1.5 py-0.5 rounded-full border border-white/10">
-                    <svg className="w-2.5 h-2.5 text-white/80" viewBox="0 0 24 14" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="1" y="1" width="18" height="12" rx="3" />
-                      <path d="M21 5v4" strokeLinecap="round" />
-                      <rect x="3" y="3" width="12" height="8" rx="1.5" fill="currentColor" />
-                    </svg>
-                    <span className="text-[9.5px] font-bold text-white/90">94%</span>
+                  {/* Right: Loopback Status */}
+                  <div className="flex items-center gap-1 bg-white/10 px-2 py-0.5 rounded-full border border-white/10">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.8)]" />
+                    <span className="text-[9.5px] font-semibold text-white/90 font-mono">USB</span>
                   </div>
                 </div>
               ) : (
@@ -500,7 +496,7 @@ export default function DesktopNotchMockup({
                       </span>
                     </div>
 
-                    {/* Center: Device Pill (Pixel 8 Pro • Connected • 94%) */}
+                    {/* Center: Device Pill (Pixel 8 Pro • Connected • USB Loopback) */}
                     <div className="flex items-center gap-1.5 bg-white/10 border border-white/15 px-2.5 py-1 rounded-full shadow-sm">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                       <svg className="w-2.5 h-3 text-white/90" viewBox="0 0 24 32" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -509,11 +505,8 @@ export default function DesktopNotchMockup({
                         <line x1="9" y1="26" x2="15" y2="26" />
                       </svg>
                       <span className="text-[10px] font-medium text-white tracking-tight">Pixel 8 Pro (Connected)</span>
-                      <div className="flex items-center gap-0.5 text-emerald-400 pl-1 border-l border-white/20">
-                        <svg className="w-2 h-2 fill-current" viewBox="0 0 24 24">
-                          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                        </svg>
-                        <span className="text-[9.5px] font-bold text-white/90">94%</span>
+                      <div className="flex items-center gap-1 text-emerald-400 pl-1.5 border-l border-white/20">
+                        <span className="text-[9.5px] font-mono font-medium text-emerald-300">127.0.0.1</span>
                       </div>
                     </div>
 

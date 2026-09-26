@@ -355,7 +355,6 @@ export default function PhoneDeckMockup({
                   strokeLinecap="round"
                 />
               </svg>
-              <span className="text-[10px] font-semibold text-[#D1D5DB]">94%</span>
               <div className="w-4 h-2 rounded-[2px] border border-[#9CA3AF] p-[1px] flex items-center">
                 <div className="w-2.5 h-full bg-[#10B981] rounded-[1px]" />
               </div>

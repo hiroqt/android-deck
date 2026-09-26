@@ -1,100 +1,288 @@
 /**
- * Exact mathematical reproduction of macOS NotchDeck's SideNotchShape and LiquidPullShape.
- * Converted directly from SwiftUI Path calculations in:
- * macos/NotchDeck/Sources/NotchDeck/Views/SideNotchShape.swift
- * macos/NotchDeck/Sources/NotchDeck/Views/LiquidPullShape.swift
+ * Exact continuous curvature geometry for macOS Notch and Liquid Pull.
+ * Perfectly calibrated to eliminate degenerate control points and stroke leakage on bezel edges.
  */
 
 export type NotchEdge = 'top' | 'left' | 'right';
 
-const CIRCLE_REACH = 0.5522847498;
+const C = 0.5522847498;
+
+export interface NotchPaths {
+  fillPath: string; // Closed path for acrylic glass fill
+  rimPath: string;  // Open path tracing ONLY display-facing curves (0 stroke on bezel)
+}
 
 /**
- * Returns the exact continuous curvature notch path with organic inverse fillet flares.
+ * Returns mathematically smooth G2 continuous notch paths.
+ * R1 = concave ear radius (flares from bezel)
+ * R2 = convex corner radius (rounds into display)
+ */
+export function getNotchGeometry(
+  edge: NotchEdge,
+  width: number,
+  height: number,
+  r1 = 10,
+  r2 = 14
+): NotchPaths {
+  const w = Math.max(1, width);
+  const h = Math.max(1, height);
+
+  if (edge === 'top') {
+    const ear = Math.min(r1, w / 4, h / 2.2);
+    const corner = Math.min(r2, (w - 2 * ear) / 2, h - ear);
+    const wallH = h - ear - corner;
+
+    // Rim path: starts at (0, 0), traces down through ears and bottom, ends at (w, 0).
+    // NO top bezel line!
+    const rimPath = [
+      `M 0 0`,
+      // Left concave flare into notch
+      `C ${ear * C} 0, ${ear} ${ear * (1 - C)}, ${ear} ${ear}`,
+      // Left vertical wall
+      wallH > 0 ? `L ${ear} ${ear + wallH}` : '',
+      // Bottom-left convex corner
+      `C ${ear} ${h - corner * (1 - C)}, ${ear + corner * (1 - C)} ${h}, ${ear + corner} ${h}`,
+      // Bottom flat edge
+      `L ${w - ear - corner} ${h}`,
+      // Bottom-right convex corner
+      `C ${w - ear - corner * (1 - C)} ${h}, ${w - ear} ${h - corner * (1 - C)}, ${w - ear} ${ear + wallH}`,
+      // Right vertical wall
+      wallH > 0 ? `L ${w - ear} ${ear}` : '',
+      // Right concave flare out to bezel
+      `C ${w - ear} ${ear * (1 - C)}, ${w - ear * (1 - C)} 0, ${w} 0`,
+    ]
+      .filter(Boolean)
+      .join(' ');
+
+    const fillPath = `${rimPath} Z`;
+
+    return { fillPath, rimPath };
+  }
+
+  if (edge === 'left') {
+    // Bezel at x = 0
+    const ear = Math.min(r1, h / 4, w / 2.2);
+    const corner = Math.min(r2, (h - 2 * ear) / 2, w - ear);
+    const wallW = w - ear - corner;
+
+    const rimPath = [
+      `M 0 0`,
+      // Top concave flare
+      `C 0 ${ear * C}, ${ear * (1 - C)} ${ear}, ${ear} ${ear}`,
+      // Top horizontal wall
+      wallW > 0 ? `L ${ear + wallW} ${ear}` : '',
+      // Top-right convex corner
+      `C ${w - corner * (1 - C)} ${ear}, ${w} ${ear + corner * (1 - C)}, ${w} ${ear + corner}`,
+      // Right vertical edge
+      `L ${w} ${h - ear - corner}`,
+      // Bottom-right convex corner
+      `C ${w} ${h - ear - corner * (1 - C)}, ${w - corner * (1 - C)} ${h - ear}, ${ear + wallW} ${h - ear}`,
+      // Bottom horizontal wall
+      wallW > 0 ? `L ${ear} ${h - ear}` : '',
+      // Bottom concave flare out to bezel
+      `C ${ear * (1 - C)} ${h - ear}, 0 ${h - ear * (1 - C)}, 0 ${h}`,
+    ]
+      .filter(Boolean)
+      .join(' ');
+
+    const fillPath = `${rimPath} Z`;
+    return { fillPath, rimPath };
+  }
+
+  // Right edge: bezel at x = w
+  const ear = Math.min(r1, h / 4, w / 2.2);
+  const corner = Math.min(r2, (h - 2 * ear) / 2, w - ear);
+  const wallW = w - ear - corner;
+
+  const rimPath = [
+    `M ${w} 0`,
+    // Top concave flare
+    `C ${w} ${ear * C}, ${w - ear * (1 - C)} ${ear}, ${w - ear} ${ear}`,
+    // Top horizontal wall
+    wallW > 0 ? `L ${corner} ${ear}` : '',
+    // Top-left convex corner
+    `C ${corner * (1 - C)} ${ear}, 0 ${ear + corner * (1 - C)}, 0 ${ear + corner}`,
+    // Left vertical edge
+    `L 0 ${h - ear - corner}`,
+    // Bottom-left convex corner
+    `C 0 ${h - ear - corner * (1 - C)}, ${corner * (1 - C)} ${h - ear}, ${corner} ${h - ear}`,
+    // Bottom horizontal wall
+    wallW > 0 ? `L ${w - ear} ${h - ear}` : '',
+    // Bottom concave flare out to bezel
+    `C ${w - ear * (1 - C)} ${h - ear}, ${w} ${h - ear * (1 - C)}, ${w} ${h}`,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const fillPath = `${rimPath} Z`;
+  return { fillPath, rimPath };
+}
+
+/**
+ * Returns dynamic liquid pull paths with authentic metaball waist and trailing bulb.
+ */
+export function getLiquidPullGeometry(
+  edge: NotchEdge,
+  width: number,
+  height: number,
+  stretchDistance: number,
+  lateralOffset = 0
+): NotchPaths {
+  const w = Math.max(1, width);
+  const h = Math.max(1, height);
+  const stretch = Math.max(0, stretchDistance);
+
+  if (stretch <= 1) {
+    return getNotchGeometry(edge, w, h);
+  }
+
+  const stretchRatio = Math.min(1.0, stretch / 110.0);
+
+  if (edge === 'top') {
+    const baseLength = Math.max(76.0, Math.min(w * 0.95, 170.0 - 50.0 * Math.pow(stretchRatio, 0.85)));
+    const baseMidX = w / 2;
+    const baseLeft = Math.max(0, baseMidX - baseLength / 2);
+    const baseRight = Math.min(w, baseMidX + baseLength / 2);
+
+    const clampedLat = Math.max(-w * 0.22, Math.min(w * 0.22, lateralOffset * 0.4));
+    const bulbMidX = Math.max(40, Math.min(w - 40, baseMidX + clampedLat));
+    const bulbW = Math.max(68.0, 84.0 - 16.0 * stretchRatio);
+    const bulbLeft = bulbMidX - bulbW / 2;
+    const bulbRight = bulbMidX + bulbW / 2;
+    const bulbCorner = Math.min(16, bulbW / 2);
+
+    const waistProgress = 0.44 + 0.08 * stretchRatio;
+    const waistY = h * waistProgress;
+    const waistMidX = baseMidX + clampedLat * 0.5;
+    const waistPinch = Math.pow(stretchRatio, 0.7);
+    const waistW = Math.max(16.0, 74.0 * (1.0 - 0.76 * waistPinch));
+    const waistLeft = waistMidX - waistW / 2;
+    const waistRight = waistMidX + waistW / 2;
+
+    const dY1 = Math.max(4.0, waistY);
+    const dY2 = Math.max(4.0, h - waistY);
+
+    const rimPath = [
+      `M ${baseLeft} 0`,
+      // Bezel flare into left waist
+      `C ${baseLeft} ${dY1 * 0.5}, ${waistLeft - dY1 * 0.35} ${waistY}, ${waistLeft} ${waistY}`,
+      // Left waist into bulb left shoulder
+      `C ${waistLeft + dY2 * 0.35} ${waistY}, ${bulbLeft} ${h - bulbCorner}, ${bulbLeft} ${h - bulbCorner}`,
+      // Bulb bottom-left corner
+      `C ${bulbLeft} ${h - bulbCorner * (1 - C)}, ${bulbLeft + bulbCorner * (1 - C)} ${h}, ${bulbLeft + bulbCorner} ${h}`,
+      // Bulb flat bottom tip
+      `L ${bulbRight - bulbCorner} ${h}`,
+      // Bulb bottom-right corner
+      `C ${bulbRight - bulbCorner * (1 - C)} ${h}, ${bulbRight} ${h - bulbCorner * (1 - C)}, ${bulbRight} ${h - bulbCorner}`,
+      // Bulb right shoulder into right waist
+      `C ${bulbRight} ${h - bulbCorner}, ${waistRight + dY2 * 0.35} ${waistY}, ${waistRight} ${waistY}`,
+      // Right waist into bezel right flare
+      `C ${waistRight - dY1 * 0.35} ${waistY}, ${baseRight} ${dY1 * 0.5}, ${baseRight} 0`,
+    ].join(' ');
+
+    const fillPath = `${rimPath} Z`;
+    return { fillPath, rimPath };
+  }
+
+  // Vertical (Left or Right)
+  const isLeft = edge === 'left';
+  const baseLength = Math.max(68.0, Math.min(h * 0.95, 130.0 - 40.0 * Math.pow(stretchRatio, 0.85)));
+  const baseMidY = h / 2;
+  const baseTop = Math.max(0, baseMidY - baseLength / 2);
+  const baseBottom = Math.min(h, baseMidY + baseLength / 2);
+
+  const clampedLat = Math.max(-h * 0.22, Math.min(h * 0.22, lateralOffset * 0.4));
+  const bulbMidY = Math.max(28, Math.min(h - 28, baseMidY + clampedLat));
+  const bulbH = Math.max(48.0, 58.0 - 10.0 * stretchRatio);
+  const bulbTop = bulbMidY - bulbH / 2;
+  const bulbBottom = bulbMidY + bulbH / 2;
+  const bulbCorner = Math.min(14, bulbH / 2);
+
+  const waistProgress = 0.44 + 0.08 * stretchRatio;
+  const waistX = isLeft ? w * waistProgress : w * (1 - waistProgress);
+  const waistMidY = baseMidY + clampedLat * 0.5;
+  const waistPinch = Math.pow(stretchRatio, 0.7);
+  const waistH = Math.max(16.0, 56.0 * (1.0 - 0.76 * waistPinch));
+  const waistTop = waistMidY - waistH / 2;
+  const waistBottom = waistMidY + waistH / 2;
+
+  if (isLeft) {
+    const dX1 = Math.max(4.0, waistX);
+    const dX2 = Math.max(4.0, w - waistX);
+
+    const rimPath = [
+      `M 0 ${baseTop}`,
+      // Bezel flare into top waist
+      `C ${dX1 * 0.5} ${baseTop}, ${waistX} ${waistTop - dX1 * 0.35}, ${waistX} ${waistTop}`,
+      // Top waist into bulb top shoulder
+      `C ${waistX} ${waistTop + dX2 * 0.35}, ${w - bulbCorner} ${bulbTop}, ${w - bulbCorner} ${bulbTop}`,
+      // Bulb top-right corner
+      `C ${w - bulbCorner * (1 - C)} ${bulbTop}, ${w} ${bulbTop + bulbCorner * (1 - C)}, ${w} ${bulbTop + bulbCorner}`,
+      // Flat outer edge
+      `L ${w} ${bulbBottom - bulbCorner}`,
+      // Bulb bottom-right corner
+      `C ${w} ${bulbBottom - bulbCorner * (1 - C)}, ${w - bulbCorner * (1 - C)} ${bulbBottom}, ${w - bulbCorner} ${bulbBottom}`,
+      // Bulb bottom shoulder into bottom waist
+      `C ${w - bulbCorner} ${bulbBottom}, ${waistX} ${waistBottom + dX2 * 0.35}, ${waistX} ${waistBottom}`,
+      // Bottom waist into bezel bottom flare
+      `C ${waistX} ${waistBottom - dX1 * 0.35}, ${dX1 * 0.5} ${baseBottom}, 0 ${baseBottom}`,
+    ].join(' ');
+
+    const fillPath = `${rimPath} Z`;
+    return { fillPath, rimPath };
+  }
+
+  // Right edge
+  const dX1 = Math.max(4.0, w - waistX);
+  const dX2 = Math.max(4.0, waistX);
+
+  const rimPath = [
+    `M ${w} ${baseTop}`,
+    // Bezel flare into top waist
+    `C ${w - dX1 * 0.5} ${baseTop}, ${waistX} ${waistTop - dX1 * 0.35}, ${waistX} ${waistTop}`,
+    // Top waist into bulb top shoulder
+    `C ${waistX} ${waistTop + dX2 * 0.35}, ${bulbCorner} ${bulbTop}, ${bulbCorner} ${bulbTop}`,
+    // Bulb top-left corner
+    `C ${bulbCorner * (1 - C)} ${bulbTop}, 0 ${bulbTop + bulbCorner * (1 - C)}, 0 ${bulbTop + bulbCorner}`,
+    // Flat outer edge
+    `L 0 ${bulbBottom - bulbCorner}`,
+    // Bulb bottom-left corner
+    `C 0 ${bulbBottom - bulbCorner * (1 - C)}, ${bulbCorner * (1 - C)} ${bulbBottom}, ${bulbCorner} ${bulbBottom}`,
+    // Bulb bottom shoulder into bottom waist
+    `C ${bulbCorner} ${bulbBottom}, ${waistX} ${waistBottom + dX2 * 0.35}, ${waistX} ${waistBottom}`,
+    // Bottom waist into bezel bottom flare
+    `C ${waistX} ${waistBottom - dX1 * 0.35}, ${w - dX1 * 0.5} ${baseBottom}, ${w} ${baseBottom}`,
+  ].join(' ');
+
+  const fillPath = `${rimPath} Z`;
+  return { fillPath, rimPath };
+}
+/**
+ * Returns geometry for detached floating droplet pill.
+ */
+export function getDetachedDropletGeometry(width: number, height: number): NotchPaths {
+  const w = Math.max(1, width);
+  const h = Math.max(1, height);
+  const r = Math.min(h / 2, w / 2, 16);
+  const path = `M ${r} 0 L ${w - r} 0 A ${r} ${r} 0 0 1 ${w} ${r} L ${w} ${h - r} A ${r} ${r} 0 0 1 ${w - r} ${h} L ${r} ${h} A ${r} ${r} 0 0 1 0 ${h - r} L 0 ${r} A ${r} ${r} 0 0 1 ${r} 0 Z`;
+  return { fillPath: path, rimPath: path };
+}
+
+/**
+ * Returns fill path string for side/top notch.
  */
 export function getSideNotchPath(
   edge: NotchEdge,
   width: number,
   height: number,
-  cornerRadius = 18,
-  curlRadius = 14
+  r1 = 10,
+  r2 = 14
 ): string {
-  if (width <= 0 || height <= 0) return '';
-
-  const w = Math.max(1, width);
-  const h = Math.max(1, height);
-
-  if (edge === 'top') {
-    // Top bezel at y = 0
-    const curl = Math.min(curlRadius, w / 4, h / 2);
-    const corner = Math.min(cornerRadius, (w - 2 * curl) / 2, h - curl);
-    const bodyBottom = h;
-
-    return [
-      `M 0 0`,
-      // Left concave flare into notch
-      `C ${curl * CIRCLE_REACH} 0, ${curl} ${curl * (1 - CIRCLE_REACH)}, ${curl} ${curl}`,
-      // Left outer corner down to bottom
-      `C ${curl} ${curl + (bodyBottom - curl - corner) * (1 - CIRCLE_REACH)}, ${curl + corner * (1 - CIRCLE_REACH)} ${bodyBottom}, ${curl + corner} ${bodyBottom}`,
-      // Flat bottom edge
-      `L ${w - curl - corner} ${bodyBottom}`,
-      // Right outer corner turning up
-      `C ${w - curl - corner * (1 - CIRCLE_REACH)} ${bodyBottom}, ${w - curl} ${curl + (bodyBottom - curl - corner) * (1 - CIRCLE_REACH)}, ${w - curl} ${curl}`,
-      // Right concave flare out to bezel
-      `C ${w - curl} ${curl * (1 - CIRCLE_REACH)}, ${w - curl * (1 - CIRCLE_REACH)} 0, ${w} 0`,
-      // Close along bezel
-      `Z`,
-    ].join(' ');
-  }
-
-  if (edge === 'left') {
-    // Left bezel at x = 0
-    const curl = Math.min(curlRadius, h / 4, w / 2);
-    const corner = Math.min(cornerRadius, (h - 2 * curl) / 2, w - curl);
-    const bodyRight = w;
-
-    return [
-      `M 0 0`,
-      // Top concave flare into side notch
-      `C 0 ${curl * CIRCLE_REACH}, ${curl * (1 - CIRCLE_REACH)} ${curl}, ${curl} ${curl}`,
-      // Top outer corner out to right
-      `C ${curl + (bodyRight - curl - corner) * (1 - CIRCLE_REACH)} ${curl}, ${bodyRight} ${curl + corner * (1 - CIRCLE_REACH)}, ${bodyRight} ${curl + corner}`,
-      // Flat outer edge
-      `L ${bodyRight} ${h - curl - corner}`,
-      // Bottom outer corner turning in
-      `C ${bodyRight} ${h - curl - corner * (1 - CIRCLE_REACH)}, ${curl + (bodyRight - curl - corner) * (1 - CIRCLE_REACH)} ${h - curl}, ${curl + corner} ${h - curl}`,
-      // Bottom concave flare out to bezel
-      `C ${curl * (1 - CIRCLE_REACH)} ${h - curl}, 0 ${h - curl * (1 - CIRCLE_REACH)}, 0 ${h}`,
-      // Close along bezel
-      `Z`,
-    ].join(' ');
-  }
-
-  // Right edge: bezel at x = w
-  const curl = Math.min(curlRadius, h / 4, w / 2);
-  const corner = Math.min(cornerRadius, (h - 2 * curl) / 2, w - curl);
-  const bodyLeft = 0;
-
-  return [
-    `M ${w} 0`,
-    // Top concave flare into side notch
-    `C ${w} ${curl * CIRCLE_REACH}, ${w - curl * (1 - CIRCLE_REACH)} ${curl}, ${w - curl} ${curl}`,
-    // Top outer corner out to left
-    `C ${w - curl - (w - curl - corner) * (1 - CIRCLE_REACH)} ${curl}, ${bodyLeft} ${curl + corner * (1 - CIRCLE_REACH)}, ${bodyLeft} ${curl + corner}`,
-    // Flat outer edge
-    `L ${bodyLeft} ${h - curl - corner}`,
-    // Bottom outer corner turning in
-    `C ${bodyLeft} ${h - curl - corner * (1 - CIRCLE_REACH)}, ${w - curl - (w - curl - corner) * (1 - CIRCLE_REACH)} ${h - curl}, ${w - curl - corner} ${h - curl}`,
-    // Bottom concave flare out to bezel
-    `C ${w - curl * (1 - CIRCLE_REACH)} ${h - curl}, ${w} ${h - curl * (1 - CIRCLE_REACH)}, ${w} ${h}`,
-    // Close along bezel
-    `Z`,
-  ].join(' ');
+  return getNotchGeometry(edge, width, height, r1, r2).fillPath;
 }
 
 /**
- * Returns the exact elastic liquid tendon path when stretching away from screen bezel.
- * Reproduces LiquidPullShape.swift metaball tendon waist pinch and bulb equations.
+ * Returns fill path string for liquid pull tendon.
  */
 export function getLiquidPullPath(
   edge: NotchEdge,
@@ -103,149 +291,10 @@ export function getLiquidPullPath(
   stretchDistance: number,
   lateralOffset = 0,
   isDetached = false,
-  cornerRadius = 18
+  _cornerRadius = 18
 ): string {
-  const w = Math.max(1, width);
-  const h = Math.max(1, height);
-
   if (isDetached) {
-    const r = Math.min(w, h) / 2;
-    return [
-      `M ${r} 0`,
-      `L ${w - r} 0`,
-      `A ${r} ${r} 0 0 1 ${w} ${r}`,
-      `A ${r} ${r} 0 0 1 ${w - r} ${h}`,
-      `L ${r} ${h}`,
-      `A ${r} ${r} 0 0 1 0 ${h - r}`,
-      `A ${r} ${r} 0 0 1 ${r} 0`,
-      `Z`,
-    ].join(' ');
+    return getDetachedDropletGeometry(width, height).fillPath;
   }
-
-  const stretch = Math.max(0, stretchDistance);
-  if (stretch <= 1) {
-    return getSideNotchPath(edge, w, h, cornerRadius, 14);
-  }
-
-  // Canonical stretch math (LiquidPullShape.swift lines 78-168)
-  const maxTravel = 105.0;
-  const stretchRatio = Math.min(1.0, Math.max(0.0, stretch / maxTravel));
-
-  if (edge === 'top') {
-    const baseLength = Math.max(90.0, Math.min(w * 0.95, 180.0 - 55.0 * Math.pow(stretchRatio, 0.85)));
-    const baseMidX = w / 2;
-    const baseLeft = Math.max(0, baseMidX - baseLength / 2);
-    const baseRight = Math.min(w, baseMidX + baseLength / 2);
-
-    const clampedLateral = Math.max(-w * 0.25, Math.min(w * 0.25, lateralOffset * 0.4));
-    const bulbMidX = Math.max(36, Math.min(w - 36, baseMidX + clampedLateral));
-    const bulbWidth = Math.max(64.0, 80.0 - 16.0 * stretchRatio);
-    const bulbLeft = bulbMidX - bulbWidth / 2;
-    const bulbRight = bulbMidX + bulbWidth / 2;
-    const bulbBottom = h;
-    const bulbCorner = Math.min(18, bulbWidth / 2);
-
-    const waistProgress = 0.44 + 0.08 * stretchRatio;
-    const waistY = h * waistProgress;
-    const waistMidX = baseMidX + clampedLateral * 0.5;
-    const waistPinch = Math.pow(stretchRatio, 0.7);
-    const waistWidth = Math.max(14.0, 72.0 * (1.0 - 0.76 * waistPinch));
-    const waistLeft = waistMidX - waistWidth / 2;
-    const waistRight = waistMidX + waistWidth / 2;
-
-    const dY1 = Math.max(4.0, waistY);
-    const dY2 = Math.max(4.0, bulbBottom - waistY);
-
-    return [
-      `M ${baseLeft} 0`,
-      // Bezel flare into left waist
-      `C ${baseLeft} ${dY1 * 0.5}, ${waistLeft - dY1 * 0.4} ${waistY}, ${waistLeft} ${waistY}`,
-      // Left waist into bulb left shoulder
-      `C ${waistLeft + dY2 * 0.4} ${waistY}, ${bulbLeft} ${bulbBottom - bulbCorner}, ${bulbLeft} ${bulbBottom - bulbCorner}`,
-      // Bulb bottom-left corner
-      `C ${bulbLeft} ${bulbBottom - bulbCorner * 0.448}, ${bulbLeft + bulbCorner * 0.448} ${bulbBottom}, ${bulbLeft + bulbCorner} ${bulbBottom}`,
-      // Flat bulb tip
-      `L ${bulbRight - bulbCorner} ${bulbBottom}`,
-      // Bulb bottom-right corner
-      `C ${bulbRight - bulbCorner * 0.448} ${bulbBottom}, ${bulbRight} ${bulbBottom - bulbCorner * 0.448}, ${bulbRight} ${bulbBottom - bulbCorner}`,
-      // Bulb right shoulder into right waist
-      `C ${bulbRight} ${bulbBottom - bulbCorner}, ${waistRight + dY2 * 0.4} ${waistY}, ${waistRight} ${waistY}`,
-      // Right waist into bezel right flare
-      `C ${waistRight - dY1 * 0.4} ${waistY}, ${baseRight} ${dY1 * 0.5}, ${baseRight} 0`,
-      // Close along bezel
-      `Z`,
-    ].join(' ');
-  }
-
-  // Vertical (Left or Right)
-  const isLeft = edge === 'left';
-  const baseLength = Math.max(80.0, Math.min(h * 0.95, 140.0 - 45.0 * Math.pow(stretchRatio, 0.85)));
-  const baseMidY = h / 2;
-  const baseTop = Math.max(0, baseMidY - baseLength / 2);
-  const baseBottom = Math.min(h, baseMidY + baseLength / 2);
-
-  const clampedLateral = Math.max(-h * 0.25, Math.min(h * 0.25, lateralOffset * 0.4));
-  const bulbMidY = Math.max(30, Math.min(h - 30, baseMidY + clampedLateral));
-  const bulbHeight = Math.max(48.0, 60.0 - 12.0 * stretchRatio);
-  const bulbTop = bulbMidY - bulbHeight / 2;
-  const bulbBottom = bulbMidY + bulbHeight / 2;
-  const bulbCorner = Math.min(16, bulbHeight / 2);
-
-  const waistProgress = 0.44 + 0.08 * stretchRatio;
-  const waistX = isLeft ? w * waistProgress : w * (1 - waistProgress);
-  const waistMidY = baseMidY + clampedLateral * 0.5;
-  const waistPinch = Math.pow(stretchRatio, 0.7);
-  const waistHeight = Math.max(14.0, 56.0 * (1.0 - 0.76 * waistPinch));
-  const waistTop = waistMidY - waistHeight / 2;
-  const waistBottom = waistMidY + waistHeight / 2;
-
-  if (isLeft) {
-    // Bezel at x = 0
-    const dX1 = Math.max(4.0, waistX);
-    const dX2 = Math.max(4.0, w - waistX);
-
-    return [
-      `M 0 ${baseTop}`,
-      // Bezel flare into top waist
-      `C ${dX1 * 0.5} ${baseTop}, ${waistX} ${waistTop - dX1 * 0.4}, ${waistX} ${waistTop}`,
-      // Top waist into bulb top shoulder
-      `C ${waistX} ${waistTop + dX2 * 0.4}, ${w - bulbCorner} ${bulbTop}, ${w - bulbCorner} ${bulbTop}`,
-      // Bulb top-right corner
-      `C ${w - bulbCorner * 0.448} ${bulbTop}, ${w} ${bulbTop + bulbCorner * 0.448}, ${w} ${bulbTop + bulbCorner}`,
-      // Flat outer edge
-      `L ${w} ${bulbBottom - bulbCorner}`,
-      // Bulb bottom-right corner
-      `C ${w} ${bulbBottom - bulbCorner * 0.448}, ${w - bulbCorner * 0.448} ${bulbBottom}, ${w - bulbCorner} ${bulbBottom}`,
-      // Bulb bottom shoulder into bottom waist
-      `C ${w - bulbCorner} ${bulbBottom}, ${waistX} ${waistBottom + dX2 * 0.4}, ${waistX} ${waistBottom}`,
-      // Bottom waist into bezel bottom flare
-      `C ${waistX} ${waistBottom - dX1 * 0.4}, ${dX1 * 0.5} ${baseBottom}, 0 ${baseBottom}`,
-      // Close along bezel
-      `Z`,
-    ].join(' ');
-  }
-
-  // Right edge: Bezel at x = w
-  const dX1 = Math.max(4.0, w - waistX);
-  const dX2 = Math.max(4.0, waistX);
-
-  return [
-    `M ${w} ${baseTop}`,
-    // Bezel flare into top waist
-    `C ${w - dX1 * 0.5} ${baseTop}, ${waistX} ${waistTop - dX1 * 0.4}, ${waistX} ${waistTop}`,
-    // Top waist into bulb top shoulder
-    `C ${waistX} ${waistTop + dX2 * 0.4}, ${bulbCorner} ${bulbTop}, ${bulbCorner} ${bulbTop}`,
-    // Bulb top-left corner
-    `C ${bulbCorner * 0.448} ${bulbTop}, 0 ${bulbTop + bulbCorner * 0.448}, 0 ${bulbTop + bulbCorner}`,
-    // Flat outer edge
-    `L 0 ${bulbBottom - bulbCorner}`,
-    // Bulb bottom-left corner
-    `C 0 ${bulbBottom - bulbCorner * 0.448}, ${bulbCorner * 0.448} ${bulbBottom}, ${bulbCorner} ${bulbBottom}`,
-    // Bulb bottom shoulder into bottom waist
-    `C ${bulbCorner} ${bulbBottom}, ${waistX} ${waistBottom + dX2 * 0.4}, ${waistX} ${waistBottom}`,
-    // Bottom waist into bezel bottom flare
-    `C ${waistX} ${waistBottom - dX1 * 0.4}, ${w - dX1 * 0.5} ${baseBottom}, ${w} ${baseBottom}`,
-    // Close along bezel
-    `Z`,
-  ].join(' ');
+  return getLiquidPullGeometry(edge, width, height, stretchDistance, lateralOffset).fillPath;
 }

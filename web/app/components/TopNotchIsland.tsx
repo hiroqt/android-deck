@@ -2,7 +2,13 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { getSideNotchPath, getLiquidPullPath, NotchEdge } from './notch/NotchGeometry';
+import {
+  getNotchGeometry,
+  getLiquidPullGeometry,
+  getDetachedDropletGeometry,
+  NotchPaths,
+  NotchEdge,
+} from './notch/NotchGeometry';
 
 export type DockPosition = 'top' | 'left' | 'right' | 'floating';
 
@@ -13,28 +19,28 @@ interface TopNotchIslandProps {
 
 const NAV_ITEMS = [
   {
-    id: 'how-it-works',
-    title: 'How it works',
-    subtitle: 'USB reverse tunnel, fluid notch HUD, tactile surface',
-    href: '#how-it-works',
+    id: 'hero',
+    title: 'Live Surface',
+    subtitle: 'Interactive MacBook notch & Android deck',
+    href: '#main-content',
   },
   {
-    id: 'setup',
-    title: 'Setup & Commands',
-    subtitle: 'Terminal host server, Notch HUD, ADB loopback',
-    href: '#setup',
+    id: 'specs',
+    title: 'Specifications',
+    subtitle: 'macOS 14+, Android API 29+, USB bus',
+    href: '#specs',
   },
   {
-    id: 'requirements',
-    title: 'Requirements',
-    subtitle: 'macOS 14+ Sonoma/Sequoia, Android 10+ (API 29+)',
-    href: '#requirements',
+    id: 'github',
+    title: 'Source Code',
+    subtitle: 'Open source Swift, Kotlin & Python repo',
+    href: 'https://github.com',
   },
   {
-    id: 'privacy',
-    title: 'Private by design',
-    subtitle: '100% offline, hardware loopback, sandboxed token IDs',
-    href: '#privacy',
+    id: 'toggle-dock',
+    title: 'Cycle Dock',
+    subtitle: 'Move Notch: Top, Left, or Right edge',
+    href: '#toggle',
   },
 ];
 
@@ -98,11 +104,11 @@ export default function TopNotchIsland({
   // Compute exact dimensions
   const getDimensions = () => {
     if (isDetached) {
-      return { width: 140, height: 36 };
+      return { width: 140, height: 38 };
     }
     if (dockPosition === 'left' || dockPosition === 'right') {
-      const baseW = isExpanded ? 280 : 48;
-      const baseH = isExpanded ? 380 : 116;
+      const baseW = isExpanded ? 270 : 44;
+      const baseH = isExpanded ? 374 : 108;
       return {
         width: baseW + (isPulling ? stretchDistance : 0),
         height: baseH,
@@ -110,7 +116,7 @@ export default function TopNotchIsland({
     }
     // Top dock
     const baseW = isExpanded ? 480 : 184;
-    const baseH = isExpanded ? 220 : 32;
+    const baseH = isExpanded ? 232 : 32;
     return {
       width: baseW,
       height: baseH + (isPulling ? stretchDistance : 0),
@@ -121,26 +127,12 @@ export default function TopNotchIsland({
   const currentEdge: NotchEdge =
     dockPosition === 'left' ? 'left' : dockPosition === 'right' ? 'right' : 'top';
 
-  // Generate SVG path for the exact liquid notch outline
-  const notchPath = isDetached
-    ? getLiquidPullPath('top', width, height, 0, 0, true)
+  // Generate exact liquid notch paths (closed fillPath + open rimPath with 0 bezel stroke)
+  const notchPaths: NotchPaths = isDetached
+    ? getDetachedDropletGeometry(width, height)
     : isPulling && stretchDistance > 0
-    ? getLiquidPullPath(
-        currentEdge,
-        width,
-        height,
-        stretchDistance,
-        lateralOffset,
-        false,
-        isExpanded ? 24 : 18
-      )
-    : getSideNotchPath(
-        currentEdge,
-        width,
-        height,
-        isExpanded ? 24 : 18,
-        14
-      );
+    ? getLiquidPullGeometry(currentEdge, width, height, stretchDistance, lateralOffset)
+    : getNotchGeometry(currentEdge, width, height, isExpanded ? 20 : 10, isExpanded ? 20 : 14);
 
   // Pointer drag gesture handlers: Left click hold & follow liquid
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -174,28 +166,28 @@ export default function TopNotchIsland({
       return;
     }
 
-    // In collapsed state: Liquid Pull Effect following the cursor!
+    // In collapsed state: 1:1 on-point tracking with liquid pull
     let stretch = 0;
     let lateral = 0;
 
     if (dockPosition === 'top') {
-      stretch = Math.max(0, dy * 0.85);
+      stretch = Math.max(0, dy);
       lateral = dx;
     } else if (dockPosition === 'left') {
-      stretch = Math.max(0, dx * 0.85);
+      stretch = Math.max(0, dx);
       lateral = dy;
     } else if (dockPosition === 'right') {
-      stretch = Math.max(0, -dx * 0.85);
+      stretch = Math.max(0, -dx);
       lateral = dy;
     }
 
-    // When pulled past 90px, detach into floating droplet following cursor directly
-    if (stretch > 90 || Math.abs(dx) > 160 || isDetached) {
+    // When pulled past 120px or detached, follow cursor freely as floating droplet
+    if (stretch > 120 || Math.abs(dx) > 160 || isDetached) {
       if (!isDetached) setIsDetached(true);
       setFloatingPos({ x: e.clientX, y: e.clientY });
     } else {
       setIsDetached(false);
-      setStretchDistance(Math.min(115, stretch));
+      setStretchDistance(stretch);
       setLateralOffset(lateral);
       setIsPulling(stretch > 2);
     }
@@ -244,7 +236,15 @@ export default function TopNotchIsland({
   };
 
   const handleNavClick = (href: string, e: React.MouseEvent) => {
+    if (href.startsWith('http')) {
+      setIsExpanded(false);
+      return;
+    }
     e.preventDefault();
+    if (href === '#toggle') {
+      setDockPosition((prev) => (prev === 'top' ? 'left' : prev === 'left' ? 'right' : 'top'));
+      return;
+    }
     setIsExpanded(false);
     const target = document.querySelector(href);
     if (target) {
@@ -274,16 +274,16 @@ export default function TopNotchIsland({
   const getBulbFollowTransform = () => {
     if (!isPulling || stretchDistance <= 0) return 'translate(0px, 0px)';
     if (dockPosition === 'top') {
-      const clampedLat = Math.max(-40, Math.min(40, lateralOffset * 0.35));
-      return `translate(${clampedLat}px, ${stretchDistance * 0.82}px)`;
+      const clampedLat = Math.max(-width * 0.22, Math.min(width * 0.22, lateralOffset * 0.4));
+      return `translate(${clampedLat}px, ${stretchDistance}px)`;
     }
     if (dockPosition === 'left') {
-      const clampedLat = Math.max(-40, Math.min(40, lateralOffset * 0.35));
-      return `translate(${stretchDistance * 0.82}px, ${clampedLat}px)`;
+      const clampedLat = Math.max(-height * 0.22, Math.min(height * 0.22, lateralOffset * 0.4));
+      return `translate(${stretchDistance}px, ${clampedLat}px)`;
     }
     if (dockPosition === 'right') {
-      const clampedLat = Math.max(-40, Math.min(40, lateralOffset * 0.35));
-      return `translate(${-stretchDistance * 0.82}px, ${clampedLat}px)`;
+      const clampedLat = Math.max(-height * 0.22, Math.min(height * 0.22, lateralOffset * 0.4));
+      return `translate(0px, ${clampedLat}px)`;
     }
     return 'translate(0px, 0px)';
   };
@@ -376,39 +376,51 @@ export default function TopNotchIsland({
           onHoverStart={() => setIsHovered(true)}
           onHoverEnd={() => setIsHovered(false)}
           layout
-          transition={{
-            type: 'spring',
-            stiffness: 350,
-            damping: 26,
-            mass: 0.75,
-          }}
+          transition={
+            isPulling
+              ? { duration: 0 }
+              : {
+                  type: 'spring',
+                  stiffness: 420,
+                  damping: 28,
+                  mass: 0.7,
+                }
+          }
           className={`relative touch-none transition-shadow ${
             isExpanded ? 'cursor-default' : 'cursor-pointer hover:drop-shadow-[0_8px_16px_rgba(0,0,0,0.35)]'
           }`}
           style={{ width, height }}
         >
           {/* ========================================================= */}
-          {/* SVG LIQUID GLASS OUTLINE (SideNotchShape / LiquidPull)    */}
+          {/* SVG LIQUID GLASS OUTLINE (Zero Bezel Stroke + Acrylic)    */}
           {/* ========================================================= */}
           <svg
             className="absolute inset-0 w-full h-full pointer-events-none overflow-visible drop-shadow-[0_12px_28px_rgba(0,0,0,0.45)]"
             viewBox={`0 0 ${width} ${height}`}
             aria-hidden="true"
           >
-            {/* Ambient Shadow Blur */}
+            {/* Ambient Shadow Blur - Only project into screen, never out past the bezel! */}
             <path
-              d={notchPath}
+              d={notchPaths.fillPath}
               fill="rgba(0, 0, 0, 0.45)"
-              transform="translate(0, 4)"
+              transform={
+                dockPosition === 'top'
+                  ? 'translate(0, 4)'
+                  : dockPosition === 'left'
+                  ? 'translate(4, 0)'
+                  : dockPosition === 'right'
+                  ? 'translate(-4, 0)'
+                  : 'translate(0, 4)'
+              }
               filter="blur(6px)"
             />
 
             {/* Deep Obsidian Acrylic Glass Fill */}
-            <path d={notchPath} fill="url(#liquidObsidianGradient)" />
+            <path d={notchPaths.fillPath} fill="url(#liquidObsidianGradient)" />
 
-            {/* Directional Specular Reflection Rim */}
+            {/* Directional Specular Reflection Rim (ONLY display facing edge, 0 stroke on bezel) */}
             <path
-              d={notchPath}
+              d={notchPaths.rimPath}
               fill="none"
               stroke="url(#liquidSpecularRim)"
               strokeWidth="1.25"
@@ -422,19 +434,19 @@ export default function TopNotchIsland({
                 x2={dockPosition === 'right' ? '0' : '0'}
                 y2="1"
               >
-                <stop offset="0%" stopColor="#1a1e28" stopOpacity="0.98" />
-                <stop offset="100%" stopColor="#080a0f" stopOpacity="0.99" />
+                <stop offset="0%" stopColor="#141822" stopOpacity="0.99" />
+                <stop offset="100%" stopColor="#080a10" stopOpacity="0.99" />
               </linearGradient>
 
               <linearGradient
                 id="liquidSpecularRim"
-                x1="0"
+                x1={dockPosition === 'right' ? '1' : '0'}
                 y1="0"
-                x2={dockPosition === 'top' ? '0' : '1'}
+                x2={dockPosition === 'top' ? '0' : dockPosition === 'left' ? '1' : '0'}
                 y2={dockPosition === 'top' ? '1' : '0'}
               >
                 <stop offset="0%" stopColor="rgba(255, 255, 255, 0.45)" />
-                <stop offset="25%" stopColor="rgba(255, 255, 255, 0.18)" />
+                <stop offset="25%" stopColor="rgba(255, 255, 255, 0.20)" />
                 <stop offset="70%" stopColor="rgba(255, 255, 255, 0.05)" />
                 <stop offset="100%" stopColor="rgba(255, 255, 255, 0.01)" />
               </linearGradient>
@@ -448,29 +460,32 @@ export default function TopNotchIsland({
           {!isExpanded && !isDetached && (dockPosition === 'top' || dockPosition === 'floating') && (
             <div
               data-notch-trigger
-              className="relative z-10 w-full h-full px-3.5 flex items-center justify-between text-white select-none pointer-events-auto transition-transform duration-75"
-              style={{ transform: getBulbFollowTransform() }}
+              className="absolute top-0 left-0 w-full h-[32px] px-3.5 flex items-center justify-between text-white select-none pointer-events-auto"
+              style={{
+                transform: getBulbFollowTransform(),
+                transition: isPulling ? 'none' : 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+              }}
               title="Click or pull down to open navigation"
             >
               {/* Left: Camera Cutout & Emerald Status Dot */}
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 shrink-0">
                 <div
-                  className="w-2.5 h-2.5 rounded-full bg-[#0d121d] border border-[#1b253b] flex items-center justify-center shrink-0"
+                  className="w-2.5 h-2.5 rounded-full bg-[#07090f] border border-[#1e273a] flex items-center justify-center shrink-0"
                   title="FaceTime Camera Cutout"
                 >
                   <div className="w-1 h-1 rounded-full bg-[#1b254b]" />
                 </div>
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.85)]" />
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)]" />
               </div>
 
               {/* Center: Brand */}
-              <span className="text-[11.5px] font-semibold text-white/95 tracking-tight font-poppins">
+              <span className="text-[12px] font-semibold text-white/95 tracking-tight font-poppins select-none">
                 macdeck
               </span>
 
               {/* Right: Drag/Pull Grip Indicator (NO battery percent!) */}
               <div
-                className="flex items-center gap-0.5 opacity-40 hover:opacity-100 transition-opacity"
+                className="flex items-center gap-0.5 opacity-40 hover:opacity-100 transition-opacity shrink-0"
                 title="Drag or pull down to navigate"
               >
                 <div className="w-1 h-1 rounded-full bg-white/70" />
@@ -487,16 +502,19 @@ export default function TopNotchIsland({
           {!isExpanded && !isDetached && (dockPosition === 'left' || dockPosition === 'right') && (
             <div
               data-notch-trigger
-              className="relative z-10 w-full h-full py-3 flex flex-col items-center justify-between text-white select-none pointer-events-auto transition-transform duration-75"
-              style={{ transform: getBulbFollowTransform() }}
+              className="absolute top-0 left-0 w-[44px] h-[108px] py-4 flex flex-col items-center justify-between text-white select-none pointer-events-auto"
+              style={{
+                transform: getBulbFollowTransform(),
+                transition: isPulling ? 'none' : 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+              }}
               title="Click or pull to open navigation"
             >
-              {/* Top: Status Dot */}
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.85)]" />
+              {/* Top: Status Dot (comfortably inside black body) */}
+              <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)]" />
 
               {/* Center: Camera Lens */}
               <div
-                className="w-2.5 h-2.5 rounded-full bg-[#0d121d] border border-[#1b253b] flex items-center justify-center shrink-0"
+                className="w-2.5 h-2.5 rounded-full bg-[#07090f] border border-[#1e273a] flex items-center justify-center shrink-0"
                 title="Camera Lens"
               >
                 <div className="w-1 h-1 rounded-full bg-[#1b254b]" />
@@ -504,7 +522,7 @@ export default function TopNotchIsland({
 
               {/* Bottom: Deck Label & Grip */}
               <div className="flex flex-col items-center gap-1.5">
-                <span className="text-[9px] font-semibold tracking-wider font-poppins uppercase text-white/75">
+                <span className="text-[9px] font-bold tracking-widest font-poppins uppercase text-white/75">
                   deck
                 </span>
                 <div className="flex gap-0.5 opacity-40 hover:opacity-100 transition-opacity">
@@ -538,27 +556,29 @@ export default function TopNotchIsland({
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
-              transition={{ duration: 0.22 }}
+              transition={{ duration: 0.2 }}
               className="p-4 sm:p-5 flex flex-col justify-between h-full z-10 text-white select-none"
             >
               {/* Header Bar */}
-              <div className="flex items-center justify-between pb-2.5 border-b border-white/10">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.85)]" />
-                  <span className="text-xs font-semibold text-white/95">
+              <div className="flex items-center justify-between pb-2.5 border-b border-white/10 gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.85)] shrink-0" />
+                  <span className="text-xs font-semibold text-white/95 truncate">
                     MacDeck Navigation HUD
                   </span>
-                  <span className="text-[10px] text-white/40 font-mono">USB Connected</span>
+                  <span className="text-[10px] text-white/45 font-mono shrink-0 hidden sm:inline">
+                    USB Connected
+                  </span>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   {/* Dock Switcher */}
-                  <div className="flex items-center gap-1 bg-white/5 rounded-lg p-0.5 border border-white/10 text-[9.5px] font-mono text-white/60">
+                  <div className="flex items-center gap-0.5 bg-white/10 rounded-lg p-0.5 border border-white/10 text-[9.5px] font-mono text-white/60">
                     <button
                       type="button"
                       onClick={() => setDockPosition('top')}
                       className={`px-1.5 py-0.5 rounded cursor-pointer ${
-                        dockPosition === 'top' ? 'bg-white/20 text-white' : 'hover:text-white'
+                        dockPosition === 'top' ? 'bg-white/25 text-white font-semibold' : 'hover:text-white'
                       }`}
                       title="Dock to top"
                     >
@@ -567,7 +587,7 @@ export default function TopNotchIsland({
                     <button
                       type="button"
                       onClick={() => setDockPosition('left')}
-                      className="px-1.5 py-0.5 rounded hover:text-white cursor-pointer"
+                      className="px-1.5 py-0.5 rounded cursor-pointer hover:text-white"
                       title="Dock to left side"
                     >
                       Left
@@ -575,7 +595,7 @@ export default function TopNotchIsland({
                     <button
                       type="button"
                       onClick={() => setDockPosition('right')}
-                      className="px-1.5 py-0.5 rounded hover:text-white cursor-pointer"
+                      className="px-1.5 py-0.5 rounded cursor-pointer hover:text-white"
                       title="Dock to right side"
                     >
                       Right
@@ -603,18 +623,20 @@ export default function TopNotchIsland({
                   <a
                     key={item.id}
                     href={item.href}
+                    target={item.href.startsWith('http') ? '_blank' : undefined}
+                    rel={item.href.startsWith('http') ? 'noopener noreferrer' : undefined}
                     onClick={(e) => handleNavClick(item.href, e)}
-                    className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.12] border border-white/10 transition-all flex flex-col gap-0.5 text-left group cursor-pointer"
+                    className="p-3 rounded-xl bg-white/[0.08] hover:bg-white/[0.16] border border-white/15 transition-all flex flex-col justify-between gap-1 text-left group cursor-pointer shadow-sm"
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-white/95 group-hover:text-emerald-300 transition-colors">
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-xs font-semibold text-white group-hover:text-emerald-300 transition-colors truncate">
                         {item.title}
                       </span>
-                      <svg className="w-3 h-3 text-white/40 group-hover:text-emerald-300 group-hover:translate-x-0.5 transition-all" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                      <svg className="w-3 h-3 text-white/40 group-hover:text-emerald-300 group-hover:translate-x-0.5 transition-all shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                         <polyline points="9 18 15 12 9 6" />
                       </svg>
                     </div>
-                    <span className="text-[10px] text-white/50 line-clamp-1">
+                    <span className="text-[11px] text-white/70 leading-snug line-clamp-1">
                       {item.subtitle}
                     </span>
                   </a>
@@ -622,9 +644,9 @@ export default function TopNotchIsland({
               </div>
 
               {/* Footer Note */}
-              <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px] text-white/40 font-mono">
-                <span>Hold left click & drag to pull liquid • Press Esc to collapse</span>
-                <span>v1.0</span>
+              <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px] text-white/45 font-mono">
+                <span className="truncate">Hold left click & drag to pull liquid • Press Esc to collapse</span>
+                <span className="shrink-0 pl-2">v1.0</span>
               </div>
             </motion.div>
           )}
@@ -637,14 +659,14 @@ export default function TopNotchIsland({
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
-              transition={{ duration: 0.22 }}
+              transition={{ duration: 0.2 }}
               className="p-4 flex flex-col justify-between h-full z-10 text-white select-none"
             >
               {/* Header */}
-              <div className="flex items-center justify-between pb-2.5 border-b border-white/10">
+              <div className="flex items-center justify-between pb-2 border-b border-white/10">
                 <div className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.85)]" />
-                  <span className="text-xs font-semibold text-white/95">MacDeck</span>
+                  <span className="text-xs font-semibold text-white/95">MacDeck Navigation</span>
                 </div>
                 <button
                   type="button"
@@ -665,18 +687,20 @@ export default function TopNotchIsland({
                   <a
                     key={item.id}
                     href={item.href}
+                    target={item.href.startsWith('http') ? '_blank' : undefined}
+                    rel={item.href.startsWith('http') ? 'noopener noreferrer' : undefined}
                     onClick={(e) => handleNavClick(item.href, e)}
-                    className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.12] border border-white/10 transition-all flex flex-col gap-0.5 text-left group cursor-pointer"
+                    className="p-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.16] border border-white/15 transition-all flex flex-col gap-0.5 text-left group cursor-pointer shadow-sm"
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-white/95 group-hover:text-emerald-300 transition-colors">
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-xs font-semibold text-white group-hover:text-emerald-300 transition-colors truncate">
                         {item.title}
                       </span>
-                      <svg className="w-3 h-3 text-white/40 group-hover:text-emerald-300 group-hover:translate-x-0.5 transition-all" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                      <svg className="w-3 h-3 text-white/40 group-hover:text-emerald-300 group-hover:translate-x-0.5 transition-all shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                         <polyline points="9 18 15 12 9 6" />
                       </svg>
                     </div>
-                    <span className="text-[9.5px] text-white/50 line-clamp-1">
+                    <span className="text-[10.5px] text-white/70 leading-snug line-clamp-1">
                       {item.subtitle}
                     </span>
                   </a>
@@ -684,11 +708,11 @@ export default function TopNotchIsland({
               </div>
 
               {/* Footer Dock Controls */}
-              <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px] text-white/40 font-mono">
+              <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px] text-white/50 font-mono">
                 <button
                   type="button"
                   onClick={() => setDockPosition('top')}
-                  className="hover:text-white transition-colors cursor-pointer"
+                  className="hover:text-white transition-colors cursor-pointer underline underline-offset-2"
                 >
                   Dock Top
                 </button>
@@ -698,9 +722,9 @@ export default function TopNotchIsland({
                   onClick={() =>
                     setDockPosition((prev) => (prev === 'left' ? 'right' : 'left'))
                   }
-                  className="hover:text-white transition-colors cursor-pointer"
+                  className="hover:text-white transition-colors cursor-pointer underline underline-offset-2"
                 >
-                  {dockPosition === 'left' ? 'Switch Right' : 'Switch Left'}
+                  {dockPosition === 'left' ? 'Dock Right' : 'Dock Left'}
                 </button>
               </div>
             </motion.div>
