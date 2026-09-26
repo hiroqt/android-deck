@@ -438,6 +438,15 @@ export default function PhoneDeckMockup({
               return (
                 <div
                   key={slot.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Trigger ${slot.label} via slot ${index + 1}`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleSlotTrigger(slot);
+                    }
+                  }}
                   onPointerDown={() => handleSlotTrigger(slot)}
                   onPointerUp={() => setPressedSlotId(null)}
                   onPointerLeave={() => setPressedSlotId(null)}
@@ -449,7 +458,7 @@ export default function PhoneDeckMockup({
                     transition:
                       'transform 90ms cubic-bezier(0.16, 1, 0.3, 1), background-color 100ms ease, border-color 100ms ease',
                   }}
-                  className="rounded-[22px] border flex flex-col items-center justify-center p-2.5 cursor-pointer select-none active:outline-none"
+                  className="rounded-[22px] border flex flex-col items-center justify-center p-2.5 cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
                 >
                   {/* App Icon */}
                   <div

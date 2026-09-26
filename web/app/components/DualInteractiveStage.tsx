@@ -337,7 +337,7 @@ export default function DualInteractiveStage({
       <div className="w-full max-w-7xl mx-auto px-4">
         <div className="flex flex-col xl:flex-row items-center justify-center gap-8 xl:gap-10">
           {/* Left Device: Android Phone Mockup (Client) */}
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center w-full max-w-[calc(100vw-32px)] sm:max-w-none">
             <div className="w-full flex items-center justify-between pb-2.5 px-2">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-500" />
