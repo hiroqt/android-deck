@@ -47,6 +47,7 @@ export default function SiteHeader({ className = '', onToggleNotch }: SiteHeader
     if (onToggleNotch) {
       onToggleNotch();
     } else {
+      window.dispatchEvent(new CustomEvent('notchdeck-toggle-notch'));
       window.dispatchEvent(new CustomEvent('macdeck-toggle-notch'));
     }
   };
@@ -57,15 +58,15 @@ export default function SiteHeader({ className = '', onToggleNotch }: SiteHeader
       role="banner"
     >
       <div className="shell flex items-center justify-between h-16">
-        {/* Brand Mark: macdeck. in Poppins bold with a solid slate dot */}
+        {/* Brand Mark: notchdeck. in Poppins bold with a solid slate dot */}
         <div className="flex items-center gap-3">
           <a
             href="#top"
             className="flex items-baseline gap-0.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#101828] rounded-md px-1 py-0.5"
-            aria-label="MacDeck Home"
+            aria-label="NotchDeck Home"
           >
             <span className="font-bold text-xl tracking-tight text-[#101828] font-['Poppins']">
-              macdeck
+              notchdeck
             </span>
             <span
               className="w-1.5 h-1.5 rounded-full bg-[#344054] inline-block ml-0.5 self-baseline"

@@ -183,7 +183,7 @@ adb reverse tcp:8765 tcp:8765
             pillarNumber="Pillar 03"
             title="Sandboxed Action Protocol"
             tagline="Android emits abstract IDs; Mac retains binary execution authority"
-            description="MacDeck eliminates arbitrary code execution risks by enforcing an immutable Action ID abstraction. The phone never transmits raw shell commands, binary paths, or scripts. It transmits structured slot IDs (app-1 to app-6) which the macOS host maps to validated NSWorkspace invocations."
+            description="NotchDeck eliminates arbitrary code execution risks by enforcing an immutable Action ID abstraction. The phone never transmits raw shell commands, binary paths, or scripts. It transmits structured slot IDs (app-1 to app-6) which the macOS host maps to validated NSWorkspace invocations."
             icon={ShieldCheckIcon}
             codeLanguage="JSON Protocol v1.0.0"
             codeSnippet={`{

@@ -24,10 +24,10 @@ if [[ ! -f "$APK" ]]; then
     "$ROOT_DIR/android/gradlew" -p "$ROOT_DIR/android" assembleDebug
 fi
 
-echo "📱 Installing MacDeck on connected device..."
+echo "📱 Installing NotchDeck on connected device..."
 "$ADB_BIN" install -r "$APK"
 
-echo "🚀 Launching MacDeck on Android..."
+echo "🚀 Launching NotchDeck on Android..."
 "$ADB_BIN" shell am start -n com.macdeck.client/.MainActivity
 
 echo "✅ Ready!"

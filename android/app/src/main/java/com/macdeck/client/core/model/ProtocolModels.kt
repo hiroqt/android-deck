@@ -39,7 +39,7 @@ data class DeviceBatteryPayload(
 
 @Serializable
 data class HelloAckPayload(
-    val serverName: String = "MacDeck Host",
+    val serverName: String = "NotchDeck Host",
     val osVersion: String = "",
     val appVersion: String = "1.0.0"
 )

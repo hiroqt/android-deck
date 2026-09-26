@@ -26,10 +26,10 @@ export default function SiteFooter() {
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-[#101828] text-white flex items-center justify-center font-mono font-bold text-sm">
-                MD
+                ND
               </div>
               <span className="text-lg font-bold tracking-tight text-[#101828]">
-                MacDeck & NotchDeck
+                NotchDeck
               </span>
             </div>
             <p className="text-sm text-[#475467] leading-relaxed max-w-sm">
@@ -61,7 +61,7 @@ export default function SiteFooter() {
                   className="hover:text-[#101828] transition-colors flex items-center gap-1.5"
                 >
                   <HugeiconsIcon icon={LaptopMinimalIcon} size={14} className="text-[#98a2b3]" />
-                  <span>macOS MacDeck Host</span>
+                  <span>macOS NotchDeck Host</span>
                 </a>
               </li>
               <li>
@@ -176,7 +176,7 @@ export default function SiteFooter() {
         {/* Bottom Bar: Copyright & Security Note */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
           <p className="text-[#475467] text-center sm:text-left">
-            MacDeck & NotchDeck Open Source Project. Designed for physical desk precision.
+            NotchDeck Open Source Project. Designed for physical desk precision.
           </p>
 
           <div className="flex items-center gap-4 text-[#475467]">

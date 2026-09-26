@@ -1,17 +1,92 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import TopNotchIsland from './components/TopNotchIsland';
 import FigureShowcase from './components/FigureShowcase';
+import CtaMacbookDemo from './components/CtaMacbookDemo';
 
-export default function HomePage() {
-  const handleToggleNotch = () => {
-    window.dispatchEvent(new CustomEvent('macdeck-toggle-notch'));
-  };
+function AppleLetterIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 814 1000"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path
+        stroke="white"
+        strokeWidth="24"
+        strokeLinejoin="round"
+        paintOrder="stroke fill"
+        d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105.6-57-155.5-127C46.7 790.7 0 663 0 541.8c0-194.4 126.4-297.5 250.8-297.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"
+      />
+    </svg>
+  );
+}
+
+function AndroidLetterIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 128 128"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        stroke="white"
+        strokeWidth="3.2"
+        strokeLinejoin="round"
+        paintOrder="stroke fill"
+        d="M21.005 43.003c-4.053-.002-7.338 3.291-7.339 7.341l.005 30.736a7.338 7.338 0 007.342 7.343 7.33 7.33 0 007.338-7.342V50.34a7.345 7.345 0 00-7.346-7.337m59.193-27.602l5.123-9.355a1.023 1.023 0 00-.401-1.388 1.022 1.022 0 00-1.382.407l-5.175 9.453c-4.354-1.938-9.227-3.024-14.383-3.019-5.142-.005-10.013 1.078-14.349 3.005L44.45 5.075a1.01 1.01 0 00-1.378-.406 1.007 1.007 0 00-.404 1.38l5.125 9.349c-10.07 5.193-16.874 15.083-16.868 26.438l66.118-.008c.002-11.351-6.79-21.221-16.845-26.427M48.942 29.858a2.772 2.772 0 01.003-5.545 2.78 2.78 0 012.775 2.774 2.776 2.776 0 01-2.778 2.771m30.106-.005a2.77 2.77 0 01-2.772-2.771 2.793 2.793 0 012.773-2.778 2.79 2.79 0 012.767 2.779 2.767 2.767 0 01-2.768 2.77M31.195 44.39l.011 47.635a7.822 7.822 0 007.832 7.831l5.333.002.006 16.264c-.001 4.05 3.291 7.342 7.335 7.342 4.056 0 7.342-3.295 7.343-7.347l-.004-16.26 9.909-.003.004 16.263c0 4.047 3.293 7.346 7.338 7.338 4.056.003 7.344-3.292 7.343-7.344l-.005-16.259 5.352-.004a7.835 7.835 0 007.836-7.834l-.009-47.635-65.624.011zm83.134 5.943a7.338 7.338 0 00-7.341-7.339c-4.053-.004-7.337 3.287-7.337 7.342l.006 30.738a7.334 7.334 0 007.339 7.339 7.337 7.337 0 007.338-7.343l-.005-30.737z"
+      />
+    </svg>
+  );
+}
+
+function NotchClickHint() {
+  const [isTopDocked, setIsTopDocked] = useState(true);
+
+  useEffect(() => {
+    const handlePositionChange = (event: Event) => {
+      const { position } = (event as CustomEvent<{ position: string }>).detail;
+      setIsTopDocked(position === 'top' || position === 'floating');
+    };
+
+    window.addEventListener('notchdeck-position-change', handlePositionChange);
+    return () => window.removeEventListener('notchdeck-position-change', handlePositionChange);
+  }, []);
 
   return (
-    <div className="relative min-h-screen bg-[#f9fafd] text-[#101828]">
+    <AnimatePresence>
+      {isTopDocked && (
+        <motion.div
+          className="notch-click-hint"
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.18, ease: 'easeOut' }}
+          aria-hidden="true"
+        >
+          <svg viewBox="0 0 34 40" fill="none">
+            <path d="M28 35C17 29 11 21 10 8" />
+            <path d="M4 15L10 7L17 13" />
+          </svg>
+          <span>grab me to the sides</span>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <div className="relative min-h-dvh bg-[#f9fafd] text-[#101828]">
       {/* Draggable Top Notch Navigation & HUD Island */}
       <TopNotchIsland />
+      <NotchClickHint />
 
       {/* Topbar: Wordmark & Notch Trigger */}
       <header className="topbar" aria-label="Brand Header">
@@ -31,176 +106,127 @@ export default function HomePage() {
               <line x1="8" y1="21" x2="16" y2="21" />
               <line x1="12" y1="17" x2="12" y2="21" />
             </svg>
-            <span>macdeck</span>
+            <span>notchdeck</span>
           </a>
           <span className="os">macOS + Android</span>
-          <button
-            type="button"
-            onClick={handleToggleNotch}
-            className="pill"
-            title="Toggle Notch dock position: Top, Left, or Right"
-            aria-label="Toggle Notch dock position"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span>Dock: Top / Side</span>
-          </button>
         </div>
       </header>
 
       {/* Main Single-Column Stage */}
       <main className="stage" id="main-content">
         {/* Intro */}
-        <div className="intro">
-          <h1>Your phone is now your stream deck.</h1>
-          <p className="lede">
-            Zero-latency desk control over USB. Configure slots live from the notch you already
-            have.
-          </p>
-        </div>
+        <section className="hero" aria-labelledby="hero-title">
+          <div className="intro">
+            <h1 id="hero-title">
+              <span className="hero-line">
+                Your{' '}
+                <span className="platform-word macbook-word">
+                  M<AppleLetterIcon className="inline-letter-icon apple-letter-icon" />cBook
+                </span>{' '}
+                notch.
+              </span>
+              <span className="hero-line">
+                Your{' '}
+                <span className="platform-word android-word">
+                  <AndroidLetterIcon className="inline-letter-icon android-letter-icon" />ndroid
+                </span>{' '}
+                control deck.
+              </span>
+            </h1>
+            <p className="lede">
+              Choose Mac shortcuts in the camera notch, then launch them from your phone.
+            </p>
+          </div>
 
-        {/* Action Button & Platform Note */}
-        <div className="actions">
-          <a className="button" href="#specs">
-            <span>View Specifications</span>
-            <span className="amount">v1.0</span>
-          </a>
-          <p className="note">For macOS 14+ and Android 10+ • Local loopback over USB</p>
-        </div>
+          <div className="actions">
+            <div className="hero-actions-row">
+              <a className="button" href="#live-demo">
+                <span>Watch it work</span>
+                <span className="amount" aria-hidden="true">↓</span>
+              </a>
+              <a className="secondary-button" href="#how-it-works">
+                See how it works <span aria-hidden="true">↓</span>
+              </a>
+            </div>
+          </div>
+        </section>
 
         {/* Breakout Figure Showcase: MacBook Notch HUD & Android Phone Deck */}
         <FigureShowcase />
 
-        {/* Editorial Architecture & Specifications Section (Zero Cards, nvidia-hackathon layout) */}
-        <section className="editorial-specs-section" id="specs" aria-labelledby="specs-title">
-          <div className="editorial-specs-grid">
-            {/* Left Column: Lead Narrative & Checklist */}
-            <div className="editorial-specs-lead">
-              <div className="specs-eyebrow">
-                <span className="dot" />
-                <span>Architecture &amp; System Specs</span>
-              </div>
-              <h2 className="editorial-specs-title" id="specs-title">
-                Zero latency. <em>Zero cards.</em><br />
-                Direct hardware desk control.
-              </h2>
-              <p className="editorial-specs-desc">
-                MacDeck connects your MacBook and Android device through a direct, high-throughput
-                hardware loopback over USB Type-C. No wireless pairing jitter, no cloud relay servers,
-                and zero third-party drivers.
-              </p>
-
-              <div className="specs-checklist">
-                <div className="specs-check-item">
-                  <span className="specs-check-icon" aria-hidden="true">✓</span>
-                  <div>
-                    <strong>Sub-0.8ms deterministic transit</strong>
-                    <div className="text-[13px] text-[#667085]">
-                      Hardware ADB reverse loopback tunnel routed strictly through local port 8765.
-                    </div>
-                  </div>
-                </div>
-
-                <div className="specs-check-item">
-                  <span className="specs-check-icon" aria-hidden="true">✓</span>
-                  <div>
-                    <strong>100% Offline &amp; Private by design</strong>
-                    <div className="text-[13px] text-[#667085]">
-                      Air-gapped telemetry bus. Transmits only abstract action tokens with zero outbound network calls.
-                    </div>
-                  </div>
-                </div>
-
-                <div className="specs-check-item">
-                  <span className="specs-check-icon" aria-hidden="true">✓</span>
-                  <div>
-                    <strong>Native AppKit &amp; Compose integration</strong>
-                    <div className="text-[13px] text-[#667085]">
-                      Swift liquid glass camera notch HUD paired with Kotlin tactile squircle feedback.
-                    </div>
-                  </div>
-                </div>
-
-                <div className="specs-check-item">
-                  <span className="specs-check-icon" aria-hidden="true">✓</span>
-                  <div>
-                    <strong>Zero-driver plug &amp; play</strong>
-                    <div className="text-[13px] text-[#667085]">
-                      Standard user-space permissions. No kernel extensions, KEXTs, or system modifications.
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column: Clean Editorial Technical Breakdown (Lines & Dividers, No Boxes) */}
-            <div className="specs-breakdown">
-              <div className="specs-breakdown-row">
-                <div className="specs-row-header">
-                  <h3>macOS Host System</h3>
-                  <span className="specs-pill-badge">Sonoma 14+ / Sequoia 15+</span>
-                </div>
-                <p>
-                  Universal Binary compiled natively for <strong>Apple Silicon (M1–M4)</strong> and <strong>Intel x86_64</strong>.
-                  Renders the liquid notch panel via native AppKit and triggers applications through direct <code>NSWorkspace</code> actuation in under 16ms.
-                </p>
-              </div>
-
-              <div className="specs-breakdown-row">
-                <div className="specs-row-header">
-                  <h3>Android Touch Surface</h3>
-                  <span className="specs-pill-badge">Android 10.0+ (API 29–35)</span>
-                </div>
-                <p>
-                  Built with modern <strong>Jetpack Compose Material3</strong>. Features custom tactile squircles with physical haptic impulse actuation. Verified and tested across Pixel, Samsung Galaxy, OnePlus, and Xiaomi hardware.
-                </p>
-              </div>
-
-              <div className="specs-breakdown-row">
-                <div className="specs-row-header">
-                  <h3>Hardware Physical Bus</h3>
-                  <span className="specs-pill-badge">Port 8765 Loopback</span>
-                </div>
-                <p>
-                  Standard USB-C to USB-C or USB-A to USB-C data cable. Routes traffic over ADB reverse socket binding to <code>127.0.0.1:8765</code>, eliminating Wi-Fi congestion and Bluetooth pairing dropouts.
-                </p>
-              </div>
-
-              <div className="specs-breakdown-row">
-                <div className="specs-row-header">
-                  <h3>Native Toolchain &amp; Licensing</h3>
-                  <span className="specs-pill-badge">MIT Open Source</span>
-                </div>
-                <p>
-                  Architected with <strong>Swift 5.9+</strong>, <strong>Kotlin 2.0+</strong>, and a lightweight <strong>Python 3.10+</strong> asyncio daemon. Complete code is auditable and open for inspection.
-                </p>
-              </div>
-            </div>
+        <section className="how-section" id="how-it-works" aria-labelledby="how-title">
+          <div className="section-heading">
+            <span className="section-kicker">Quick setup</span>
+            <h2 id="how-title">Ready in three simple steps.</h2>
+            <p>Keep your most-used Mac apps and controls within easy reach on your phone.</p>
           </div>
 
-          {/* Bottom Editorial Meta Bar */}
-          <div className="editorial-specs-footer">
-            <span>
-              <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)]" />
-              <span>Status: <code>VERIFIED READY FOR DESK</code></span>
-            </span>
-            <span>Loopback Route: <code>127.0.0.1:8765</code></span>
-            <span>Transit Delay: <code>&lt; 0.8ms Direct Bus</code></span>
-            <span>Distribution: <code>Free &amp; Open Source</code></span>
+          <ol className="steps-list">
+            <li>
+              <span className="step-number" aria-hidden="true">1</span>
+              <div>
+                <h3>Connect your phone</h3>
+                <p>
+                  Plug your Android phone into your Mac with a USB data cable, or connect
+                  wirelessly over your local Wi-Fi / LAN network.
+                </p>
+              </div>
+              <span className="step-detail">USB / LAN</span>
+            </li>
+            <li>
+              <span className="step-number" aria-hidden="true">2</span>
+              <div>
+                <h3>Choose your shortcuts</h3>
+                <p>Open the notch panel and pick the apps or controls you use most.</p>
+              </div>
+              <span className="step-detail">6 slots</span>
+            </li>
+            <li>
+              <span className="step-number" aria-hidden="true">3</span>
+              <div>
+                <h3>Tap and get things done</h3>
+                <p>Use your phone as a desk controller. Each tap runs the action on your Mac.</p>
+              </div>
+              <span className="step-detail">Instant</span>
+            </li>
+          </ol>
+
+          <aside className="privacy-note" aria-label="Privacy information">
+            <span className="privacy-icon" aria-hidden="true">✓</span>
+            <div>
+              <strong>Your shortcuts stay private.</strong>
+              <p>No account or cloud service is needed. Your phone talks directly to your Mac.</p>
+            </div>
+          </aside>
+        </section>
+
+        <section className="closing-section" aria-labelledby="closing-title">
+          <div className="closing-header">
+            <div>
+              <span className="section-kicker">Make your phone useful at your desk</span>
+              <h2 id="closing-title">Your everyday shortcuts, one tap away.</h2>
+              <p>Set up six controls for the apps and actions you reach for all day.</p>
+            </div>
+            <a className="button" href="https://github.com/arnel/android-deck" target="_blank" rel="noopener noreferrer">
+              <span>Get NotchDeck</span>
+              <span className="amount" aria-hidden="true">↗</span>
+            </a>
           </div>
+          <CtaMacbookDemo />
         </section>
 
         {/* Clean Bendy-Style Footer */}
         <footer>
-          <span>© 2026 MacDeck</span>
+          <span>© 2026 NotchDeck</span>
           <nav className="links" aria-label="Footer Navigation">
-            <a href="#specs">Specifications</a>
+            <a href="#how-it-works">How it works</a>
             <a
-              href="https://github.com"
+              href="https://github.com/arnel/android-deck"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Source code on GitHub (opens in a new tab)"
             >
-              GitHub
+              Source code
             </a>
           </nav>
         </footer>

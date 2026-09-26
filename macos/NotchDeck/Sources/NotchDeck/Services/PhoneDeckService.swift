@@ -74,7 +74,23 @@ public final class PhoneDeckService: ObservableObject {
             dir = baseDirectory
         } else {
             let home = FileManager.default.homeDirectoryForCurrentUser
-            dir = home.appendingPathComponent(".macdeck", isDirectory: true)
+            let notchDir = home.appendingPathComponent(".notchdeck", isDirectory: true)
+            let macDir = home.appendingPathComponent(".macdeck", isDirectory: true)
+            if FileManager.default.fileExists(atPath: notchDir.path) {
+                dir = notchDir
+            } else if FileManager.default.fileExists(atPath: macDir.path) {
+                dir = notchDir
+                try? FileManager.default.createDirectory(at: notchDir, withIntermediateDirectories: true)
+                for file in ["profile.json", "status.json", "presets.json"] {
+                    let src = macDir.appendingPathComponent(file)
+                    let dst = notchDir.appendingPathComponent(file)
+                    if FileManager.default.fileExists(atPath: src.path) && !FileManager.default.fileExists(atPath: dst.path) {
+                        try? FileManager.default.copyItem(at: src, to: dst)
+                    }
+                }
+            } else {
+                dir = notchDir
+            }
         }
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         self.profileURL = dir.appendingPathComponent("profile.json")

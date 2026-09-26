@@ -49,7 +49,7 @@ const FAQ_ITEMS: FaqItem[] = [
     question:
       'Why is Android strictly prohibited from transmitting shell commands or binary paths?',
     answer:
-      'MacDeck implements an immutable Action ID Sandboxing model to eliminate command injection vectors. The Android handset only sends lightweight, abstract identifier tokens (such as action_invoke with slot_id app-1). It possesses zero knowledge of filesystem paths or executable binaries. The macOS host daemon maintains sole execution authority: it validates the slot ID against a user-configured local whitelist and invokes applications via official system APIs (NSWorkspace.shared.openApplication).',
+      'NotchDeck implements an immutable Action ID Sandboxing model to eliminate command injection vectors. The Android handset only sends lightweight, abstract identifier tokens (such as action_invoke with slot_id app-1). It possesses zero knowledge of filesystem paths or executable binaries. The macOS host daemon maintains sole execution authority: it validates the slot ID against a user-configured local whitelist and invokes applications via official system APIs (NSWorkspace.shared.openApplication).',
     keyMetric: 'Zero shell injection surface',
   },
   {
@@ -59,7 +59,7 @@ const FAQ_ITEMS: FaqItem[] = [
     question:
       'Do I need an online account, cloud servers, Bluetooth pairing, or open router ports?',
     answer:
-      'No. MacDeck requires no user accounts, no cloud relays, no Bluetooth pairing, and no port forwarding on your router. Communication is entirely peer-to-peer over local hardware loopback (127.0.0.1:8765) or private subnet LAN sockets. When operating in USB mode, you can disconnect your computer and phone from the internet entirely, and MacDeck will function with complete zero-latency autonomy.',
+      'No. NotchDeck requires no user accounts, no cloud relays, no Bluetooth pairing, and no port forwarding on your router. Communication is entirely peer-to-peer over local hardware loopback (127.0.0.1:8765) or private subnet LAN sockets. When operating in USB mode, you can disconnect your computer and phone from the internet entirely, and NotchDeck will function with complete zero-latency autonomy.',
     keyMetric: '100% Offline & Air-gapped capable',
   },
   {

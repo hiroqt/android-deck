@@ -1,7 +1,7 @@
-# MacDeck --- Product Requirements Document (PRD)
+# NotchDeck --- Product Requirements Document (PRD)
 
 **Status:** Implementation-ready v1 plan\
-**Product:** MacDeck\
+**Product:** NotchDeck\
 **Platforms:** Android client + macOS host agent\
 **Primary mode:** Local-only, USB-first with Wi-Fi fallback\
 **Target:** Reuse an old Android phone as a fast, persistent Stream Deck
@@ -9,7 +9,7 @@
 
 ## 1. Product Summary
 
-MacDeck turns an Android phone into a dedicated touchscreen control
+NotchDeck turns an Android phone into a dedicated touchscreen control
 surface for a Mac. The Android device renders configurable controls; the
 macOS agent owns configuration, permissions, automation, execution,
 state observation, and security.

@@ -44,7 +44,7 @@ fun ConnectionDialog(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "MacDeck Connection",
+                    text = "NotchDeck Connection",
                     color = TextPrimary,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
@@ -119,7 +119,7 @@ fun ConnectionDialog(
                 if (selectedTab == 1) {
                     // LAN Mode Input
                     Text(
-                        text = "Enter your Mac's IP address (shown on MacDeck terminal):",
+                        text = "Enter your Mac's IP address (shown on NotchDeck terminal / notch):",
                         color = TextSecondary,
                         fontSize = 13.sp,
                         modifier = Modifier.align(Alignment.Start)

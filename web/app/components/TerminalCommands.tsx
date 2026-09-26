@@ -34,9 +34,9 @@ const TERMINAL_TABS: TerminalTab[] = [
     prerequisites: 'macOS 14+ Sonoma or Sequoia, Swift 6 toolchain installed.',
     icon: ComputerTerminal01Icon,
     simulatedOutput: [
-      '[INFO] Building and launching MacDeck macOS Host Agent...',
+      '[INFO] Building and launching NotchDeck macOS Host Agent...',
       '[INFO] Resolving project root dependencies...',
-      '[INFO] Compiling Swift sources (MacDeck, WebSocketServer, ActionExecutor)...',
+      '[INFO] Compiling Swift sources (NotchDeck, WebSocketServer, ActionExecutor)...',
       '[OK] WebSocket server initialized on ws://127.0.0.1:8765',
       '[OK] Ready for client connections. Awaiting ACTION_INVOKE packets...',
     ],
@@ -75,7 +75,7 @@ const TERMINAL_TABS: TerminalTab[] = [
       '[INFO] Setting up ADB reverse tunnel on port 8765...',
       'adb reverse tcp:8765 tcp:8765',
       '[OK] USB Tunnel Established Successfully.',
-      '     Android Phone (localhost:8765) ----[USB 3.1]----> MacDeck Host (:8765)',
+      '     Android Phone (localhost:8765) ----[USB 3.1]----> NotchDeck Host (:8765)',
       '     Select "USB Mode" in Android app to connect to ws://127.0.0.1:8765',
     ],
   },
@@ -92,10 +92,10 @@ const TERMINAL_TABS: TerminalTab[] = [
       '[INFO] Using ADB: /opt/homebrew/bin/adb',
       '[INFO] Building Android debug APK via Gradle wrapper...',
       'BUILD SUCCESSFUL in 3.8s',
-      '[INFO] Installing MacDeck on connected device...',
+      '[INFO] Installing NotchDeck on connected device...',
       'Performing Streamed Install',
       'Success',
-      '[INFO] Launching MacDeck on Android...',
+      '[INFO] Launching NotchDeck on Android...',
       'Starting: Intent { cmp=com.macdeck.client/.MainActivity }',
       '[OK] Ready. Android client active and listening.',
     ],
@@ -172,7 +172,7 @@ export default function TerminalCommands() {
             Terminal Quickstart & Commands
           </h2>
           <p className="text-base sm:text-lg text-[#475467] leading-relaxed">
-            Run, connect, and inspect the entire MacDeck and NotchDeck stack with simple,
+            Run, connect, and inspect the entire NotchDeck stack with simple,
             transparent shell scripts. Click any command to copy it directly to your clipboard.
           </p>
         </div>

@@ -1,12 +1,12 @@
-# MacDeck & NotchDeck
+# NotchDeck
 
-A high-performance macOS desktop productivity suite providing both physical display notch integration (**NotchDeck**) and an Android touchscreen stream deck (**MacDeck**).
+A high-performance macOS desktop productivity suite providing both physical display notch integration and an Android touchscreen stream deck (**NotchDeck**).
 
 ---
 
 ## NotchDeck (macOS Native Liquid Glass Notch Stream Deck Configurator)
 
-**NotchDeck** transforms the MacBook camera notch (or simulated top-bar notch on external displays) into an interactive, fluid Liquid Glass HUD that serves as the visual configurator for your connected Android Stream Deck (**MacDeck**).
+**NotchDeck** transforms the MacBook camera notch (or simulated top-bar notch on external displays) into an interactive, fluid Liquid Glass HUD that serves as the visual configurator for your connected Android Stream Deck.
 
 ![macOS 14+](https://img.shields.io/badge/macOS-14.0%2B-blue)
 ![Swift 5.9+](https://img.shields.io/badge/Swift-5.9%2B-orange)
@@ -54,7 +54,7 @@ swift test
 
 ---
 
-## MacDeck (Android Touchscreen Stream Deck)
+## NotchDeck for Android (Touchscreen Stream Deck)
 
 Turn your Android phone into a dedicated touchscreen Stream Deck for macOS over USB or Wi-Fi.
 
@@ -92,9 +92,9 @@ The server will start listening on port `8765` and display your local LAN IP add
 2. In the Android app, tap the top connection bar or gear icon.
 3. Select **LAN (Wi-Fi)**, enter your Mac's IP (displayed in the Mac terminal output), and tap **Connect via Wi-Fi**.
 
-### Customizing Your 6 Apps (MacDeck)
+### Customizing Your 6 Apps (NotchDeck)
 
-In the running MacDeck terminal, you can interactively manage your deck:
+In the running NotchDeck host terminal or via NotchDeck HUD, you can interactively manage your deck:
 - `list` — View currently assigned apps for all 6 slots.
 - `scan` — Scan and list all installed applications on your Mac.
 - `set <slot 1-6> <bundleId>` — Assign an app to a slot (e.g. `set 3 com.brave.Browser`). The update broadcasts immediately to your Android screen!

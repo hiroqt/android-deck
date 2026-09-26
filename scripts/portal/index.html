@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MacDeck • Android Download Portal</title>
+    <title>NotchDeck • Android Download Portal</title>
     <style>
         :root {
             --bg: #090b10;
@@ -318,11 +318,11 @@
                 <span>GATEWAY ACTIVE • {{MAC_IP}}</span>
             </div>
 
-            <h1>MacDeck for Android</h1>
+            <h1>NotchDeck for Android</h1>
             <p class="subtitle">Turn your Android phone into an ultra-responsive Mac Stream Deck over your local Wi-Fi network.</p>
 
-            <a href="/MacDeck.apk" class="btn-download" download="MacDeck.apk" id="download-btn">
-                <span>⬇️ Download MacDeck APK</span>
+            <a href="/NotchDeck.apk" class="btn-download" download="NotchDeck.apk" id="download-btn">
+                <span>⬇️ Download NotchDeck APK</span>
                 <span class="btn-sub">v1.0.0 • {{APK_SIZE}} • Universal Build</span>
             </a>
 
@@ -351,7 +351,7 @@
             <h2>Scan with Android Camera to Install</h2>
             <canvas id="qr-canvas" width="180" height="180"></canvas>
             <div style="font-size: 11px; color: var(--text-muted); margin-top: 10px;">
-                Direct link: <span style="color: var(--accent);">http://{{MAC_IP}}:{{PORT}}/MacDeck.apk</span>
+                Direct link: <span style="color: var(--accent);">http://{{MAC_IP}}:{{PORT}}/NotchDeck.apk</span>
             </div>
         </div>
 
@@ -362,27 +362,27 @@
             <div class="step-item">
                 <div class="step-num">1</div>
                 <div class="step-text">
-                    Tap <strong>Download MacDeck APK</strong> above to save the installer file to your phone.
+                    Tap <strong>Download NotchDeck APK</strong> above to save the installer file to your phone.
                 </div>
             </div>
 
             <div class="step-item">
                 <div class="step-num">2</div>
                 <div class="step-text">
-                    Open your notification or <em>Downloads</em> folder and tap <strong>MacDeck.apk</strong>. If prompted with <em>"Install unknown apps"</em>, tap <strong>Settings</strong> and toggle <strong>Allow from this source</strong>.
+                    Open your notification or <em>Downloads</em> folder and tap <strong>NotchDeck.apk</strong>. If prompted with <em>"Install unknown apps"</em>, tap <strong>Settings</strong> and toggle <strong>Allow from this source</strong>.
                 </div>
             </div>
 
             <div class="step-item">
                 <div class="step-num">3</div>
                 <div class="step-text">
-                    Open <strong>MacDeck</strong> on your phone. Make sure your phone is connected to the same Wi-Fi network — it will automatically detect your Mac at <strong>{{MAC_IP}}</strong>!
+                    Open <strong>NotchDeck</strong> on your phone. Make sure your phone is connected to the same Wi-Fi network — it will automatically detect your Mac at <strong>{{MAC_IP}}</strong>!
                 </div>
             </div>
         </div>
 
         <div class="footer">
-            MacDeck Stream Deck Gateway • Local IP Portal
+            NotchDeck Stream Deck Gateway • Local IP Portal
         </div>
     </div>
 
@@ -411,14 +411,14 @@
                     if (sub) {
                         sub.innerHTML = "✅ Download started! Tap above if not prompted.";
                     }
-                    window.location.href = "/MacDeck.apk";
+                    window.location.href = "/NotchDeck.apk";
                 }, 700);
             }
         })();
 
         // Minimal, self-contained QR Code Generator for Canvas
         (function() {
-            const downloadUrl = window.location.origin + "/MacDeck.apk";
+            const downloadUrl = window.location.origin + "/NotchDeck.apk";
             
             // Simple QR code drawing via SVG or API fallback, or pure canvas matrix
             // Use local SVG image generator if available, or generate visually

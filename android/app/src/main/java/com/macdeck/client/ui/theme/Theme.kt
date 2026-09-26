@@ -15,9 +15,14 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 @Composable
-fun MacDeckTheme(content: @Composable () -> Unit) {
+fun NotchDeckTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = DarkColorScheme,
         content = content
     )
+}
+
+@Composable
+fun MacDeckTheme(content: @Composable () -> Unit) {
+    NotchDeckTheme(content = content)
 }

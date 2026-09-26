@@ -1,0 +1,14 @@
+refactor: rebrand MacDeck to NotchDeck and completely overhaul web showcase
+
+This commit introduces a comprehensive rebranding from MacDeck to NotchDeck across the entire repository and introduces a massive redesign of the website showcase.
+
+### Rebranding
+- **Global Find and Replace:** Replaced instances of 'MacDeck' with 'NotchDeck' across documentation (`docs/`), Android client codebase (`MainActivity`, UI elements, `settings.gradle`), protocol markdown, bash scripts, and Python server scripts.
+- **Mac Host & Portal:** Updated `PhoneDeckService`, `QRCodeCardView`, and portal `index.html` to reflect the new NotchDeck branding.
+- **Node Package:** Updated `web/package.json` and `package-lock.json` name to `notchdeck-showcase`.
+
+### Web Showcase Redesign (`web/`)
+- **Layout and Content:** Completely redesigned `page.tsx` moving away from the previous tech-heavy spec breakdown to a clean, user-friendly 3-step 'How it works' section and a sleek 'Figure Showcase'.
+- **Styling:** Massive updates to `globals.css` (over 500 lines modified) to implement the new bendy-style aesthetic, sleek cards, and typography.
+- **Components:** Rewrote `FigureShowcase.tsx` (now 400+ lines) with enhanced layout and interactive elements. Updated `TopNotchIsland`, `SiteHeader`, and `SiteFooter` to align with the new brand and aesthetic.
+- **Copywriting:** Updated headers, footers, CTA buttons, and privacy notes to be more engaging and end-user focused.

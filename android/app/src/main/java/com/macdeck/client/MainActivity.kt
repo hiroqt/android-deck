@@ -10,7 +10,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.macdeck.client.core.battery.BatteryMonitor
 import com.macdeck.client.core.network.DeckWebSocketClient
 import com.macdeck.client.ui.deck.DeckScreen
-import com.macdeck.client.ui.theme.MacDeckTheme
+import com.macdeck.client.ui.theme.NotchDeckTheme
 
 class MainActivity : ComponentActivity() {
 
@@ -38,7 +38,7 @@ class MainActivity : ComponentActivity() {
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
 
         setContent {
-            MacDeckTheme {
+            NotchDeckTheme {
                 DeckScreen(client = client)
             }
         }

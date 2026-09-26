@@ -898,7 +898,7 @@ final class ViewsTests: XCTestCase {
         XCTAssertEqual(qrImage?.size.width, 150)
         XCTAssertEqual(qrImage?.size.height, 150)
 
-        let smallQR = QRCodeGenerator.generate(from: "http://192.168.1.3:8080/MacDeck.apk", size: 80, correctionLevel: "Q")
+        let smallQR = QRCodeGenerator.generate(from: "http://192.168.1.3:8080/NotchDeck.apk", size: 80, correctionLevel: "Q")
         XCTAssertNotNil(smallQR)
         XCTAssertEqual(smallQR?.size.width, 80)
     }

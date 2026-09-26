@@ -114,8 +114,10 @@ export default function DualInteractiveStage({
         setInternalSlots(customEvent.detail);
       }
     };
+    window.addEventListener('notchdeck-slots-sync', handleBroadcast);
     window.addEventListener('macdeck-slots-sync', handleBroadcast);
     return () => {
+      window.removeEventListener('notchdeck-slots-sync', handleBroadcast);
       window.removeEventListener('macdeck-slots-sync', handleBroadcast);
     };
   }, [controlledSlots]);
@@ -127,6 +129,7 @@ export default function DualInteractiveStage({
   }, []);
 
   const broadcastSlots = (updated: DeckSlotItem[]) => {
+    window.dispatchEvent(new CustomEvent('notchdeck-slots-sync', { detail: updated }));
     window.dispatchEvent(new CustomEvent('macdeck-slots-sync', { detail: updated }));
     if (onSlotsChange) {
       onSlotsChange(updated);

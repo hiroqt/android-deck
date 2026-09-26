@@ -36,5 +36,5 @@ echo "🔌 Setting up ADB reverse tunnel on port $PORT..."
 
 echo ""
 echo "🎉 USB Tunnel Established Successfully!"
-echo "   Android Phone (localhost:$PORT) ────[USB]────> MacDeck Host (:8765)"
-echo "   In the Android MacDeck app, select 'USB Mode' to connect to ws://127.0.0.1:$PORT"
+echo "   Android Phone (localhost:$PORT) ────[USB]────> NotchDeck Host (:8765)"
+echo "   In the Android NotchDeck app, select 'USB Mode' to connect to ws://127.0.0.1:$PORT"

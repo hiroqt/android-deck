@@ -1,6 +1,6 @@
-# MacDeck Protocol Specification (v1)
+# NotchDeck Protocol Specification (v1)
 
-This document formalizes the wire protocol for MacDeck over persistent WebSocket connections.
+This document formalizes the wire protocol for NotchDeck over persistent WebSocket connections.
 
 ## 1. Envelope Structure
 

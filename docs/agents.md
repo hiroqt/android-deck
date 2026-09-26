@@ -1,11 +1,11 @@
-# MacDeck --- AGENTS.md
+# NotchDeck --- AGENTS.md
 
-This file defines how coding agents should work in the MacDeck
+This file defines how coding agents should work in the NotchDeck
 repository.
 
 ## 1. Mission
 
-Build MacDeck as a secure, low-latency Android-to-macOS control surface.
+Build NotchDeck as a secure, low-latency Android-to-macOS control surface.
 Preserve the architectural rule that Android requests named actions
 while macOS owns executable definitions and permissions.
 

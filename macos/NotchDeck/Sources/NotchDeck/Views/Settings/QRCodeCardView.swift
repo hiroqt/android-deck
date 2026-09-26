@@ -39,7 +39,7 @@ public struct QRCodeCardView: View {
         case .autoPortal:
             return "http://\(localIP):8080/?auto=1"
         case .directApk:
-            return "http://\(localIP):8080/MacDeck.apk"
+            return "http://\(localIP):8080/NotchDeck.apk"
         case .portalPage:
             return "http://\(localIP):8080"
         }
@@ -179,7 +179,7 @@ public struct QRCodeCardView: View {
                     .font(.system(size: 9, weight: .bold))
                     .foregroundColor(.secondary.opacity(0.5))
                 Spacer()
-                StepMiniGuide(num: "2", title: "Download", desc: "Saves latest MacDeck.apk")
+                StepMiniGuide(num: "2", title: "Download", desc: "Saves latest NotchDeck.apk")
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.system(size: 9, weight: .bold))
@@ -192,7 +192,7 @@ public struct QRCodeCardView: View {
 
     private var enlargedQRCodePopover: some View {
         VStack(spacing: 12) {
-            Text("Scan to Download MacDeck")
+            Text("Scan to Download NotchDeck")
                 .font(.system(size: 13, weight: .bold))
 
             ZStack {

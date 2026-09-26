@@ -1,4 +1,4 @@
-# MacDeck E2E Planning Package
+# NotchDeck E2E Planning Package
 
 This package contains the implementation documentation for building an
 old Android phone into a native, low-latency Stream Deck-style control

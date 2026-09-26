@@ -23,7 +23,7 @@ import com.macdeck.client.core.network.DeckWebSocketClient
 import com.macdeck.client.ui.theme.*
 import kotlinx.coroutines.launch
 
-private const val PREFS_NAME = "macdeck_settings"
+private const val PREFS_NAME = "notchdeck_settings"
 private const val KEY_HOST = "saved_host"
 private const val KEY_IS_USB = "saved_is_usb"
 

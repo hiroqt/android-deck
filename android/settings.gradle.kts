@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "MacDeck"
+rootProject.name = "NotchDeck"
 include(":app")

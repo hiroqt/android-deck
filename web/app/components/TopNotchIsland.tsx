@@ -25,10 +25,10 @@ const NAV_ITEMS = [
     href: '#main-content',
   },
   {
-    id: 'specs',
-    title: 'Specifications',
-    subtitle: 'macOS 14+, Android API 29+, USB bus',
-    href: '#specs',
+    id: 'how-it-works',
+    title: 'Quick Setup',
+    subtitle: 'Connect via USB or LAN in three simple steps',
+    href: '#how-it-works',
   },
   {
     id: 'github',
@@ -100,14 +100,23 @@ export default function TopNotchIsland({
       }
       setIsExpanded(false);
     };
+    window.addEventListener('notchdeck-toggle-notch', handleToggle);
     window.addEventListener('macdeck-toggle-notch', handleToggle);
     return () => {
+      window.removeEventListener('notchdeck-toggle-notch', handleToggle);
       window.removeEventListener('macdeck-toggle-notch', handleToggle);
       if (typeof document !== 'undefined') {
         document.body.classList.remove('is-notch-dragging');
       }
     };
   }, []);
+
+  // Keep the page-level helper in sync with the notch's current edge.
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent('notchdeck-position-change', { detail: { position: dockPosition } }),
+    );
+  }, [dockPosition]);
 
   // Compute exact dimensions
   const getDimensions = () => {
@@ -375,7 +384,7 @@ export default function TopNotchIsland({
               >
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#12151f]/95 border border-white/20 text-white shadow-xl backdrop-blur-xl whitespace-nowrap text-xs">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)]" />
-                  <span className="font-semibold text-white/95">MacDeck</span>
+                  <span className="font-semibold text-white/95">NotchDeck</span>
                   <span className="text-white/40 font-bold">•</span>
                   <span className="text-white/90 font-mono font-medium">Click to navigate</span>
                 </div>
@@ -471,7 +480,7 @@ export default function TopNotchIsland({
                 <div className="w-full flex items-center justify-center gap-2 pointer-events-none">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)] shrink-0" />
                   <span className="text-[11.5px] font-semibold text-white/95 tracking-tight font-poppins select-none">
-                    macdeck
+                    notchdeck
                   </span>
                 </div>
               ) : (
@@ -489,7 +498,7 @@ export default function TopNotchIsland({
 
                   {/* Center: Brand */}
                   <span className="text-[12px] font-semibold text-white/95 tracking-tight font-poppins select-none">
-                    macdeck
+                    notchdeck
                   </span>
 
                   {/* Right: Drag/Pull Grip Indicator (NO battery percent!) */}
@@ -552,7 +561,7 @@ export default function TopNotchIsland({
               <div className="flex items-center gap-1.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.85)]" />
                 <span className="text-[11px] font-semibold tracking-tight text-white/95 font-poppins">
-                  macdeck
+                  notchdeck
                 </span>
               </div>
               <span className="text-[9.5px] font-mono text-emerald-300">Drop to dock</span>
@@ -575,7 +584,7 @@ export default function TopNotchIsland({
                 <div className="flex items-center gap-2 min-w-0">
                   <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.85)] shrink-0" />
                   <span className="text-xs font-semibold text-white/95 truncate">
-                    MacDeck Navigation HUD
+                    NotchDeck Navigation HUD
                   </span>
                   <span className="text-[10px] text-white/45 font-mono shrink-0 hidden sm:inline">
                     USB Connected
@@ -677,7 +686,7 @@ export default function TopNotchIsland({
               <div className="flex items-center justify-between pb-2 border-b border-white/10">
                 <div className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.85)]" />
-                  <span className="text-xs font-semibold text-white/95">MacDeck Navigation</span>
+                  <span className="text-xs font-semibold text-white/95">NotchDeck Navigation</span>
                 </div>
                 <button
                   type="button"

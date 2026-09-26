@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MacDeck Wireless Android APK Download Portal
+NotchDeck Wireless Android APK Download Portal
 Serves the latest Android APK over your local Wi-Fi gateway (e.g. http://192.168.1.3:8080).
 """
 
@@ -56,12 +56,12 @@ class PortalRequestHandler(BaseHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
 
-        if path in ["/MacDeck.apk", "/app-debug.apk", "/download", "/apk"]:
+        if path in ["/NotchDeck.apk", "/MacDeck.apk", "/app-debug.apk", "/download", "/apk"]:
             if os.path.exists(APK_PATH):
                 size = os.path.getsize(APK_PATH)
                 self.send_response(200)
                 self.send_header("Content-Type", "application/vnd.android.package-archive")
-                self.send_header("Content-Disposition", 'attachment; filename="MacDeck.apk"')
+                self.send_header("Content-Disposition", 'attachment; filename="NotchDeck.apk"')
                 self.send_header("Content-Length", str(size))
                 self.send_header("Cache-Control", "no-cache")
                 self.end_headers()
@@ -80,7 +80,7 @@ class PortalRequestHandler(BaseHTTPRequestHandler):
 
         if path in ["/", "/index.html"]:
             self.serve_portal()
-        elif path in ["/MacDeck.apk", "/app-debug.apk", "/download", "/apk"]:
+        elif path in ["/NotchDeck.apk", "/MacDeck.apk", "/app-debug.apk", "/download", "/apk"]:
             self.serve_apk()
         elif path == "/api/status":
             self.serve_status()
@@ -126,7 +126,7 @@ class PortalRequestHandler(BaseHTTPRequestHandler):
         size = os.path.getsize(APK_PATH)
         self.send_response(200)
         self.send_header("Content-Type", "application/vnd.android.package-archive")
-        self.send_header("Content-Disposition", 'attachment; filename="MacDeck.apk"')
+        self.send_header("Content-Disposition", 'attachment; filename="NotchDeck.apk"')
         self.send_header("Content-Length", str(size))
         self.send_header("Cache-Control", "no-cache")
         self.end_headers()
@@ -156,10 +156,10 @@ class PortalRequestHandler(BaseHTTPRequestHandler):
 def main():
     local_ip = get_local_ip()
     portal_url = f"http://{local_ip}:{PORT}"
-    apk_url = f"http://{local_ip}:{PORT}/MacDeck.apk"
+    apk_url = f"http://{local_ip}:{PORT}/NotchDeck.apk"
 
     print("=" * 64)
-    print("  📲 MacDeck Wireless Android Download Portal")
+    print("  📲 NotchDeck Wireless Android Download Portal")
     print("=" * 64)
     print()
     print(f"  🌐 Portal Web URL:   \033[1;36m{portal_url}\033[0m")
@@ -181,7 +181,7 @@ def main():
 
     print("=" * 64)
     print(f"  👉 Open Chrome on your Android phone and visit: {portal_url}")
-    print("  Tap 'Download MacDeck APK' -> Open -> Install.")
+    print("  Tap 'Download NotchDeck APK' -> Open -> Install.")
     print("  Press Ctrl+C to stop server.")
     print("=" * 64)
     print()

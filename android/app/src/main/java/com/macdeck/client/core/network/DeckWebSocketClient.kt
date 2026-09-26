@@ -30,7 +30,7 @@ class DeckWebSocketClient(
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 ) {
     companion object {
-        private const val TAG = "MacDeckWS"
+        private const val TAG = "NotchDeckWS"
     }
 
     var batteryProvider: (() -> BatteryInfo?)? = null

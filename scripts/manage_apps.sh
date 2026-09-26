@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROFILE_FILE="$HOME/.macdeck/profile.json"
-mkdir -p "$HOME/.macdeck"
+PROFILE_DIR="$HOME/.notchdeck"
+LEGACY_DIR="$HOME/.macdeck"
+mkdir -p "$PROFILE_DIR"
+if [ -d "$LEGACY_DIR" ] && [ ! -f "$PROFILE_DIR/profile.json" ] && [ -f "$LEGACY_DIR/profile.json" ]; then
+    cp "$LEGACY_DIR/profile.json" "$PROFILE_DIR/profile.json"
+fi
 
-# Python script to manage ~/.macdeck/profile.json
+# Python script to manage profile.json
 python3 - "$@" << 'EOF'
 import sys
 import json
@@ -12,7 +16,11 @@ import os
 import subprocess
 from pathlib import Path
 
-PROFILE_PATH = Path.home() / ".macdeck" / "profile.json"
+PROFILE_DIR = Path.home() / ".notchdeck"
+LEGACY_DIR = Path.home() / ".macdeck"
+PROFILE_PATH = PROFILE_DIR / "profile.json"
+if not PROFILE_PATH.exists() and (LEGACY_DIR / "profile.json").exists():
+    PROFILE_PATH = LEGACY_DIR / "profile.json"
 
 def scan_installed_apps():
     search_dirs = [
@@ -76,7 +84,7 @@ def save_profile(data):
     print("📡 Connected Android phones will update automatically in real time!")
 
 def print_slots(profile):
-    print("\n📱 Current MacDeck Slots (Max 6):")
+    print("\n📱 Current NotchDeck Slots (Max 6):")
     print("--------------------------------------------------")
     for i, s in enumerate(profile.get("slots", [])):
         print(f"  Slot {i + 1}: {s.get('label', 'App')}  [{s.get('bundleId', '')}]")

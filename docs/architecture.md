@@ -1,8 +1,8 @@
-# MacDeck --- Architecture
+# NotchDeck --- Architecture
 
 ## 1. Architectural Intent
 
-MacDeck is a local, two-application system:
+NotchDeck is a local, two-application system:
 
 1.  **Android Deck Client** --- renders controls, captures touch events,
     provides haptics, displays Mac state.

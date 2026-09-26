@@ -1,8 +1,8 @@
-# MacDeck --- End-to-End Implementation Plan
+# NotchDeck --- End-to-End Implementation Plan
 
 ## 1. Delivery Strategy
 
-Build MacDeck as vertical slices. Each phase should leave the product
+Build NotchDeck as vertical slices. Each phase should leave the product
 runnable rather than producing disconnected subsystems.
 
 The critical path is:

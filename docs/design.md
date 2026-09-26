@@ -1,8 +1,8 @@
-# MacDeck --- Product & Interaction Design
+# NotchDeck --- Product & Interaction Design
 
 ## 1. Design Principles
 
-MacDeck should feel like a physical control surface, not a
+NotchDeck should feel like a physical control surface, not a
 remote-control webpage.
 
 1.  **Immediate:** touch feedback occurs instantly.
