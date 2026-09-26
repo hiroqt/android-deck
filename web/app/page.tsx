@@ -58,11 +58,11 @@ export default function HomePage() {
             type="button"
             onClick={handleToggleNotch}
             className="pill"
-            title="Open Notch Navigation & Stream Deck HUD"
-            aria-label="Open Notch Navigation"
+            title="Toggle Notch dock position: Top, Left, or Right"
+            aria-label="Toggle Notch dock position"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span>Notch menu</span>
+            <span>Dock: Top / Side</span>
           </button>
         </div>
       </header>
