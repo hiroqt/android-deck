@@ -27,3 +27,8 @@ captures/
 
 # Superpowers scratch & SDD
 .superpowers/
+
+# Node / Web
+node_modules/
+.next/
+
