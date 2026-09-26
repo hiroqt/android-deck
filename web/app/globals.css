@@ -681,219 +681,155 @@ h1 > .hero-line + .hero-line {
 }
 
 /* ==========================================================================
-   Editorial Specifications Section (Inspired by nvidia-hackathon layout)
-   Strictly Zero Cards: Editorial Two-Column Split, Clean Hairline Dividers
+   Requirements Section
+   Strictly Zero Cards: Hairline Divided Rows, Same Font, No Badges
    ========================================================================== */
 
-.editorial-specs-section {
+.requirements-section {
   width: min(1040px, calc(100vw - 32px));
-  margin: 48px auto 0 50%;
+  margin: 0 auto 0 50%;
   transform: translateX(-50%);
-  padding-top: 48px;
-  border-top: 1px solid var(--line);
-}
-
-.editorial-specs-grid {
-  display: grid;
-  grid-template-columns: 1fr 1.05fr;
-  gap: 60px;
-  align-items: start;
-}
-
-@media (max-width: 900px) {
-  .editorial-specs-grid {
-    grid-template-columns: 1fr;
-    gap: 44px;
-  }
-}
-
-/* Left Column: Lead Narrative & Checklist */
-.editorial-specs-lead {
-  display: flex;
-  flex-direction: column;
-}
-
-.specs-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-family: monospace;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #475467;
-  margin-bottom: 14px;
-}
-
-.specs-eyebrow .dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: #039855;
-}
-
-.editorial-specs-title {
-  font-size: clamp(26px, 3.2vw, 38px);
-  line-height: 1.15;
-  letter-spacing: -0.035em;
-  font-weight: 700;
-  color: var(--ink);
-  margin: 0 0 16px;
-}
-
-.editorial-specs-title em {
-  font-style: italic;
-  color: #475467;
-  font-weight: 600;
-}
-
-.editorial-specs-desc {
-  font-size: 15px;
-  line-height: 1.7;
-  color: var(--muted);
-  margin: 0 0 28px;
-  max-width: 480px;
-}
-
-.specs-checklist {
-  display: grid;
-  gap: 16px;
-  font-size: 13.5px;
-  font-weight: 500;
-  color: var(--ink-secondary);
-}
-
-.specs-check-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  line-height: 1.45;
-}
-
-.specs-check-icon {
-  width: 22px;
-  height: 22px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: #e6f6ee;
-  color: #039855;
-  display: grid;
-  place-items: center;
-  font-size: 12px;
-  font-weight: 700;
-  margin-top: 1px;
-}
-
-.specs-check-item strong {
-  color: var(--ink);
-  font-weight: 600;
-}
-
-/* Right Column: Clean Typographic Specification Lines (NO CARDS) */
-.specs-breakdown {
-  border-top: 1px solid var(--line);
-}
-
-.specs-breakdown-intro {
-  padding: 0 0 18px;
-}
-
-.specs-breakdown-intro span {
-  display: block;
-  margin-bottom: 4px;
-  color: var(--ink);
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.specs-breakdown-intro p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 12.5px;
-  line-height: 1.5;
-}
-
-.specs-breakdown-row {
+  padding: 64px 0;
   border-bottom: 1px solid var(--line);
-  padding: 20px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
 }
 
-.specs-row-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+.requirements-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
 }
 
-.specs-row-header h3 {
-  font-size: 15.5px;
+.requirements-list li {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 32px;
+  align-items: baseline;
+  padding: 24px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.requirement-title {
+  margin: 0;
+  color: var(--ink);
+  font-size: 16px;
   font-weight: 600;
   letter-spacing: -0.015em;
-  color: var(--ink);
-  margin: 0;
 }
 
-.specs-pill-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-family: monospace;
-  font-size: 10.5px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: #f2f4f7;
-  border: 1px solid #e4e7ec;
-  color: #344054;
-  white-space: nowrap;
-}
-
-.specs-breakdown-row p {
-  margin: 0;
-  font-size: 13.5px;
-  line-height: 1.6;
-  color: var(--muted);
-}
-
-.specs-breakdown-row code {
-  font-family: monospace;
-  font-size: 11.5px;
-  background: #f2f4f7;
-  padding: 1px 5px;
-  border-radius: 4px;
-  color: var(--ink);
-}
-
-/* Bottom Editorial Meta Bar */
-.editorial-specs-footer {
-  margin-top: 36px;
-  padding-top: 20px;
+.requirement-content {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px;
-  font-size: 12px;
-  color: var(--muted);
-  border-top: 1px dashed var(--line);
-}
-
-.editorial-specs-footer span {
-  display: inline-flex;
-  align-items: center;
+  flex-direction: column;
   gap: 6px;
 }
 
-.editorial-specs-footer code {
-  font-family: monospace;
-  font-size: 11.5px;
+.requirement-primary {
+  margin: 0;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.requirement-desc {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+/* ==========================================================================
+   FAQ Section
+   Strictly Zero Cards: Minimalist Border-Divided Accordion, Flat Hairlines
+   ========================================================================== */
+
+.faq-section {
+  width: min(1040px, calc(100vw - 32px));
+  margin: 0 auto 0 50%;
+  transform: translateX(-50%);
+  padding: 64px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.faq-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.faq-item {
+  border-bottom: 1px solid var(--line);
+}
+
+.faq-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: color 0.15s ease;
+}
+
+.faq-trigger:hover .faq-question {
+  color: #000;
+}
+
+.faq-trigger:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.faq-question {
+  margin: 0;
+  font-size: 17px;
   font-weight: 600;
   color: var(--ink);
+  line-height: 1.4;
+  letter-spacing: -0.015em;
+  transition: color 0.15s ease;
 }
+
+.faq-icon-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: var(--muted);
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.faq-trigger:hover .faq-icon-indicator {
+  color: var(--ink);
+}
+
+.faq-answer-collapse {
+  overflow: hidden;
+}
+
+.faq-answer-inner {
+  padding-bottom: 24px;
+  max-width: 820px;
+}
+
+.faq-answer-inner p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14.5px;
+  line-height: 1.7;
+  text-wrap: pretty;
+}
+
 
 .closing-section {
   width: min(1040px, calc(100vw - 32px));
@@ -963,6 +899,30 @@ h1 > .hero-line + .hero-line {
   .step-detail {
     grid-column: 2;
     justify-self: start;
+  }
+
+  .requirements-section,
+  .faq-section {
+    padding: 48px 0;
+  }
+
+  .requirements-list li {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 20px 0;
+  }
+
+  .faq-trigger {
+    padding: 18px 0;
+  }
+
+  .faq-question {
+    font-size: 15.5px;
+  }
+
+  .faq-answer-inner p {
+    font-size: 13.5px;
+    line-height: 1.6;
   }
 
   .closing-section {

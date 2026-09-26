@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import com.macdeck.client.core.model.DeckControl
 import com.macdeck.client.core.network.ConnectionState
 import com.macdeck.client.core.network.DeckWebSocketClient
+import com.macdeck.client.core.network.NetworkGatewayUtils
 import com.macdeck.client.ui.theme.*
 import kotlinx.coroutines.launch
 
@@ -45,14 +46,33 @@ fun DeckScreen(
         mutableStateOf(prefs.getBoolean(KEY_IS_USB, false))
     }
     var currentHost by remember {
-        mutableStateOf(prefs.getString(KEY_HOST, "192.168.1.3") ?: "192.168.1.3")
+        mutableStateOf(
+            prefs.getString(KEY_HOST, null)?.takeIf { it.isNotBlank() }
+                ?: NetworkGatewayUtils.getDhcpGatewayIp(context)
+                ?: "192.168.1.3"
+        )
     }
     var showDialog by remember { mutableStateOf(false) }
+    var isSearchingHost by remember { mutableStateOf(false) }
 
     // Connect initially using saved host
     LaunchedEffect(currentHost, isUsbMode) {
         val targetHost = if (isUsbMode) "127.0.0.1" else currentHost
-        client.connect(targetHost, 8765)
+        client.connect(targetHost, NetworkGatewayUtils.WS_PORT)
+    }
+
+    // Auto-discover NotchDeck host on Wi-Fi if disconnected
+    LaunchedEffect(connectionState, isUsbMode) {
+        if (!isUsbMode && connectionState != ConnectionState.CONNECTED && currentProfile == null) {
+            isSearchingHost = true
+            val discovered = NetworkGatewayUtils.discoverMacHost(context)
+            isSearchingHost = false
+            if (discovered != null && discovered != currentHost) {
+                currentHost = discovered
+                prefs.edit().putString(KEY_HOST, discovered).apply()
+                client.connect(discovered, NetworkGatewayUtils.WS_PORT)
+            }
+        }
     }
 
     // Default starter placeholders if no profile received yet
@@ -104,9 +124,10 @@ fun DeckScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = when (connectionState) {
-                                ConnectionState.CONNECTING -> "🔄 Connecting to $currentHost:8765..."
-                                ConnectionState.RECONNECTING -> "⚠️ Reconnecting to $currentHost:8765..."
+                            text = when {
+                                isSearchingHost -> "🔍 Auto-detecting Notch on your Wi-Fi..."
+                                connectionState == ConnectionState.CONNECTING -> "🔄 Connecting to $currentHost:8765..."
+                                connectionState == ConnectionState.RECONNECTING -> "⚠️ Reconnecting to $currentHost:8765..."
                                 else -> "📡 Tap to set Mac Wi-Fi IP (currently: $currentHost)"
                             },
                             color = if (connectionState == ConnectionState.RECONNECTING) DeckWarning else TextPrimary,

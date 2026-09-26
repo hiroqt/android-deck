@@ -147,30 +147,100 @@ public final class PhoneDeckService: ObservableObject {
         }
     }
 
+    private var isSavingStatus = false
+
     public func loadStatus() {
-        guard let data = try? Data(contentsOf: statusURL),
-              let status = try? JSONDecoder().decode(DeviceStatusInfo.self, from: data) else {
-            DispatchQueue.main.async {
+        if isSavingStatus { return }
+        // Never allow a file on disk to clobber active live WebSocket client connections
+        if PhoneDeckHostServer.shared.hasActiveClients {
+            return
+        }
+
+        let reset = {
+            if !PhoneDeckHostServer.shared.hasActiveClients {
                 self.isDeviceConnected = false
                 self.connectedDeviceName = nil
                 self.clientCount = 0
                 self.batteryLevel = nil
                 self.isCharging = false
             }
+        }
+
+        guard let data = try? Data(contentsOf: statusURL),
+              let status = try? JSONDecoder().decode(DeviceStatusInfo.self, from: data) else {
+            if !FileManager.default.fileExists(atPath: statusURL.path) {
+                if Thread.isMainThread {
+                    reset()
+                } else {
+                    DispatchQueue.main.async(execute: reset)
+                }
+            }
             return
         }
 
         let apply = {
+            if PhoneDeckHostServer.shared.hasActiveClients { return }
             self.isDeviceConnected = status.connected && status.clientCount > 0
-            self.connectedDeviceName = status.clientName
+            if let name = status.clientName {
+                self.connectedDeviceName = name
+            }
             self.clientCount = status.clientCount
-            self.batteryLevel = self.isDeviceConnected ? status.batteryLevel : nil
-            self.isCharging = self.isDeviceConnected ? (status.isCharging ?? false) : false
+            if self.isDeviceConnected {
+                if let battery = status.batteryLevel {
+                    self.batteryLevel = battery
+                }
+                if let charging = status.isCharging {
+                    self.isCharging = charging
+                }
+            } else {
+                self.batteryLevel = nil
+                self.isCharging = false
+            }
         }
         if Thread.isMainThread {
             apply()
         } else {
             DispatchQueue.main.async(execute: apply)
+        }
+    }
+
+    public func setDeviceConnected(_ connected: Bool, name: String? = nil, count: Int? = nil) {
+        self.isDeviceConnected = connected
+        if let name = name { self.connectedDeviceName = name }
+        if let count = count { self.clientCount = count }
+        if !connected {
+            self.batteryLevel = nil
+            self.isCharging = false
+        }
+        saveStatus()
+    }
+
+    public func updateBattery(level: Int, charging: Bool) {
+        self.batteryLevel = level
+        self.isCharging = charging
+        saveStatus()
+    }
+
+    public func saveStatus() {
+        isSavingStatus = true
+        let statusObj = DeviceStatusInfo(
+            connected: self.isDeviceConnected,
+            clientName: self.connectedDeviceName,
+            clientCount: self.clientCount,
+            port: PhoneDeckHostServer.shared.port,
+            timestamp: Date().timeIntervalSince1970,
+            batteryLevel: self.batteryLevel,
+            isCharging: self.isCharging
+        )
+        if let data = try? JSONEncoder().encode(statusObj) {
+            try? data.write(to: statusURL, options: .atomic)
+            let altDir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".macdeck", isDirectory: true)
+            try? FileManager.default.createDirectory(at: altDir, withIntermediateDirectories: true)
+            let altStatus = altDir.appendingPathComponent("status.json")
+            try? data.write(to: altStatus, options: .atomic)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.isSavingStatus = false
         }
     }
 
@@ -222,6 +292,7 @@ public final class PhoneDeckService: ObservableObject {
 
         DispatchQueue.main.async {
             self.slots = newSlots
+            PhoneDeckHostServer.shared.broadcastProfile()
         }
     }
 
@@ -335,7 +406,7 @@ public final class PhoneDeckService: ObservableObject {
         // Timer backup to keep connection status and profile fresh
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            self.pollTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
+            self.pollTimer = Timer.scheduledTimer(withTimeInterval: 8.0, repeats: true) { [weak self] _ in
                 self?.loadStatus()
                 self?.checkProfileModification()
                 self?.checkPortalStatus()

@@ -3,14 +3,16 @@ import SwiftUI
 public struct SettingsView: View {
     @ObservedObject public var configManager: ConfigManager
     @ObservedObject public var phoneDeckService = PhoneDeckService.shared
+    @ObservedObject public var networkHelper = NetworkHelper.shared
 
     @State private var newPresetName: String = ""
     @State private var copiedDownloadLink: Bool = false
     @State private var copiedHostAddress: Bool = false
 
-    public init(configManager: ConfigManager = .shared, phoneDeckService: PhoneDeckService = .shared) {
+    public init(configManager: ConfigManager = .shared, phoneDeckService: PhoneDeckService = .shared, networkHelper: NetworkHelper = .shared) {
         self.configManager = configManager
         self.phoneDeckService = phoneDeckService
+        self.networkHelper = networkHelper
     }
 
     public var body: some View {
@@ -412,7 +414,7 @@ public struct SettingsView: View {
     }
 
     private var localIPAddress: String {
-        NetworkHelper.localIPAddress
+        networkHelper.activeIPAddress
     }
 }
 

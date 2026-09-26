@@ -7,6 +7,16 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
         NotchWindowController.shared.start()
         setupStatusItem()
+
+        // Start embedded WebSocket host server (port 8765) and UDP auto-discovery responder (port 8766)
+        PhoneDeckHostServer.shared.start()
+
+        // Ensure APK download portal is running for QR code scanning
+        PhoneDeckService.shared.startPortalServerIfNeeded()
+    }
+
+    public func applicationWillTerminate(_ notification: Notification) {
+        PhoneDeckHostServer.shared.stop()
     }
 
     private func setupStatusItem() {

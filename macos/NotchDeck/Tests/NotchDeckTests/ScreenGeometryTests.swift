@@ -7,17 +7,17 @@ final class ScreenGeometryTests: XCTestCase {
     func testPhysicalNotchDetectedWhenTopInsetLarge() {
         let geo = ScreenGeometry(screenWidth: 1512, screenHeight: 982, topSafeAreaInset: 32)
         XCTAssertTrue(geo.hasPhysicalNotch)
-        XCTAssertEqual(geo.notchCollapsedSize.height, 32)
-        XCTAssertEqual(geo.notchCollapsedSize.width, 180)
+        XCTAssertEqual(geo.notchCollapsedSize.height, 44)
+        XCTAssertEqual(geo.notchCollapsedSize.width, 360)
         XCTAssertEqual(geo.notchExpandedSize.width, 480)
-        XCTAssertEqual(geo.notchExpandedSize.height, 224)
+        XCTAssertEqual(geo.notchExpandedSize.height, 248)
     }
 
     func testExternalDisplayTreatedAsSimulatedNotch() {
         let geo = ScreenGeometry(screenWidth: 2560, screenHeight: 1440, topSafeAreaInset: 0)
         XCTAssertFalse(geo.hasPhysicalNotch)
         XCTAssertEqual(geo.notchCollapsedSize.height, 34)
-        XCTAssertEqual(geo.notchCollapsedSize.width, 180)
+        XCTAssertEqual(geo.notchCollapsedSize.width, 184)
         XCTAssertEqual(geo.notchExpandedSize.width, 480)
         XCTAssertEqual(geo.notchExpandedSize.height, 224)
     }
@@ -25,7 +25,7 @@ final class ScreenGeometryTests: XCTestCase {
     func testPhysicalNotchWithCustomHeightAboveMinimum() {
         let geo = ScreenGeometry(screenWidth: 1728, screenHeight: 1117, topSafeAreaInset: 44)
         XCTAssertTrue(geo.hasPhysicalNotch)
-        XCTAssertEqual(geo.notchCollapsedSize.height, 44)
+        XCTAssertEqual(geo.notchCollapsedSize.height, 56)
     }
 
     func testNotchEdgeProperties() {
@@ -47,8 +47,8 @@ final class ScreenGeometryTests: XCTestCase {
 
         // Collapsed sizes
         let topCollapsed = geo.collapsedSize(for: .top)
-        XCTAssertEqual(topCollapsed.width, 180)
-        XCTAssertEqual(topCollapsed.height, 34)
+        XCTAssertEqual(topCollapsed.width, 390)
+        XCTAssertEqual(topCollapsed.height, 46)
 
         let rightCollapsed = geo.collapsedSize(for: .right)
         XCTAssertEqual(rightCollapsed.width, 48)
@@ -61,7 +61,7 @@ final class ScreenGeometryTests: XCTestCase {
         // Expanded sizes
         let topExpanded = geo.expandedSize(for: .top)
         XCTAssertEqual(topExpanded.width, 480)
-        XCTAssertEqual(topExpanded.height, 224)
+        XCTAssertEqual(topExpanded.height, 248)
 
         let rightExpanded = geo.expandedSize(for: .right)
         XCTAssertEqual(rightExpanded.width, 280)
@@ -78,8 +78,8 @@ final class ScreenGeometryTests: XCTestCase {
 
         // Top frame
         let topFrame = geo.panelFrame(for: .top, isExpanded: false, shadowMargin: 24, screenRect: screen)
-        XCTAssertEqual(topFrame.width, 180 + 48)
-        XCTAssertEqual(topFrame.maxX, 500 + 114)
+        XCTAssertEqual(topFrame.width, 360 + 48)
+        XCTAssertEqual(topFrame.maxX, 500 + 204)
         XCTAssertEqual(topFrame.maxY, 800)
 
         // Right frame (docked to right screen edge)
@@ -91,6 +91,41 @@ final class ScreenGeometryTests: XCTestCase {
         let leftFrame = geo.panelFrame(for: .left, isExpanded: false, sidePositionRatio: 0.5, shadowMargin: 24, screenRect: screen)
         XCTAssertEqual(leftFrame.width, 48 + 24)
         XCTAssertEqual(leftFrame.minX, 0)
+    }
+
+    func testPhysicalNotchVisibilityOnAllMSeriesMacs() {
+        // 14" MacBook Pro (Liquid Retina XDR: 3024x1964 @2x -> 1512x982 pt, menu bar ~32pt, notch ~179-180pt)
+        let mbp14 = ScreenGeometry(screenWidth: 1512, screenHeight: 982, topSafeAreaInset: 32)
+        XCTAssertTrue(mbp14.hasPhysicalNotch)
+        XCTAssertGreaterThan(mbp14.collapsedSize(for: .top).width, mbp14.physicalNotchWidth + 160)
+        XCTAssertGreaterThan(mbp14.collapsedSize(for: .top).height, mbp14.topSafeAreaInset)
+        XCTAssertEqual(mbp14.collapsedSize(for: .top), CGSize(width: 360, height: 44))
+
+        // 16" MacBook Pro (Liquid Retina XDR: 3456x2234 @2x -> 1728x1117 pt, menu bar ~32pt, notch ~210pt)
+        let mbp16 = ScreenGeometry(screenWidth: 1728, screenHeight: 1117, topSafeAreaInset: 32)
+        XCTAssertTrue(mbp16.hasPhysicalNotch)
+        XCTAssertGreaterThan(mbp16.collapsedSize(for: .top).width, mbp16.physicalNotchWidth + 160)
+        XCTAssertGreaterThan(mbp16.collapsedSize(for: .top).height, mbp16.topSafeAreaInset)
+        XCTAssertEqual(mbp16.collapsedSize(for: .top), CGSize(width: 390, height: 44))
+
+        // 13.6" MacBook Air (Liquid Retina: 2560x1664 @2x -> 1470x956 pt, menu bar ~34pt, notch ~179pt)
+        let mba13 = ScreenGeometry(screenWidth: 1470, screenHeight: 956, topSafeAreaInset: 34)
+        XCTAssertTrue(mba13.hasPhysicalNotch)
+        XCTAssertGreaterThan(mba13.collapsedSize(for: .top).width, mba13.physicalNotchWidth + 160)
+        XCTAssertGreaterThan(mba13.collapsedSize(for: .top).height, mba13.topSafeAreaInset)
+        XCTAssertEqual(mba13.collapsedSize(for: .top), CGSize(width: 360, height: 46))
+
+        // 15.3" MacBook Air (Liquid Retina: 2880x1864 @2x -> 1680x1050 pt, menu bar ~34pt, notch ~179pt)
+        let mba15 = ScreenGeometry(screenWidth: 1680, screenHeight: 1050, topSafeAreaInset: 34)
+        XCTAssertTrue(mba15.hasPhysicalNotch)
+        XCTAssertGreaterThan(mba15.collapsedSize(for: .top).width, mba15.physicalNotchWidth + 160)
+        XCTAssertGreaterThan(mba15.collapsedSize(for: .top).height, mba15.topSafeAreaInset)
+        XCTAssertEqual(mba15.collapsedSize(for: .top), CGSize(width: 360, height: 46))
+
+        // Non-notch Mac or External Display (e.g., Studio Display, iMac, Mac mini)
+        let external = ScreenGeometry(screenWidth: 2560, screenHeight: 1440, topSafeAreaInset: 0)
+        XCTAssertFalse(external.hasPhysicalNotch)
+        XCTAssertEqual(external.collapsedSize(for: .top), CGSize(width: 184, height: 34))
     }
 
     func testTargetEdgeDetectionWithHysteresis() {

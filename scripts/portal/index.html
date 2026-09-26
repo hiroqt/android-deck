@@ -149,6 +149,53 @@
             letter-spacing: 0.2px;
         }
 
+        .security-banner {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 16px;
+            padding: 12px 14px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            text-align: left;
+        }
+
+        .security-banner-icon {
+            font-size: 20px;
+            line-height: 1;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .security-banner-content {
+            flex: 1;
+        }
+
+        .security-banner-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #fbbf24;
+            margin-bottom: 2px;
+        }
+
+        .security-banner-desc {
+            font-size: 11px;
+            color: var(--text-secondary);
+            line-height: 1.45;
+        }
+
+        .badge-keep {
+            display: inline-block;
+            background: rgba(245, 158, 11, 0.22);
+            border: 1px solid rgba(245, 158, 11, 0.45);
+            color: #fef3c7;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 6px;
+            font-size: 11px;
+        }
+
         .meta-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -315,11 +362,21 @@
 
             <div class="status-badge">
                 <span class="status-dot"></span>
-                <span>GATEWAY ACTIVE • {{MAC_IP}}</span>
+                <span id="badge-text">GATEWAY ACTIVE • {{MAC_IP}}</span>
             </div>
 
             <h1>NotchDeck for Android</h1>
             <p class="subtitle">Turn your Android phone into an ultra-responsive Mac Stream Deck over your local Wi-Fi network.</p>
+
+            <div class="security-banner">
+                <div class="security-banner-icon">🛡️</div>
+                <div class="security-banner-content">
+                    <div class="security-banner-title">Android Download Notice</div>
+                    <div class="security-banner-desc">
+                        Chrome may prompt <em>"File might be harmful"</em> or <em>"Can't download securely"</em>. This is standard for local network APKs. Tap <span class="badge-keep">Keep</span> or <span class="badge-keep">Download anyway</span>.
+                    </div>
+                </div>
+            </div>
 
             <a href="/NotchDeck.apk" class="btn-download" download="NotchDeck.apk" id="download-btn">
                 <span>⬇️ Download NotchDeck APK</span>
@@ -349,9 +406,17 @@
         <!-- Scan to Install QR Code -->
         <div class="qr-card">
             <h2>Scan with Android Camera to Install</h2>
-            <canvas id="qr-canvas" width="180" height="180"></canvas>
+            <div style="background: white; border-radius: 16px; padding: 12px; display: inline-block; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); margin: 8px auto;">
+                <img id="qr-img" src="/api/qr?data=http://{{MAC_IP}}:{{PORT}}/NotchDeck.apk" width="180" height="180" alt="NotchDeck QR Code" style="display: block; border-radius: 8px;">
+            </div>
             <div style="font-size: 11px; color: var(--text-muted); margin-top: 10px;">
-                Direct link: <span style="color: var(--accent);">http://{{MAC_IP}}:{{PORT}}/NotchDeck.apk</span>
+                Direct link: <a href="/NotchDeck.apk" id="direct-link-url" style="color: var(--accent); text-decoration: none;">http://{{MAC_IP}}:{{PORT}}/NotchDeck.apk</a>
+            </div>
+
+            <!-- Multi-interface switcher -->
+            <div id="interface-box" style="margin-top: 16px; padding: 12px 14px; background: rgba(255, 255, 255, 0.04); border-radius: 14px; border: 1px solid var(--surface-border); display: none;">
+                <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 600;">Other Connection Interfaces:</div>
+                <div id="interface-pills" style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;"></div>
             </div>
         </div>
 
@@ -362,7 +427,7 @@
             <div class="step-item">
                 <div class="step-num">1</div>
                 <div class="step-text">
-                    Tap <strong>Download NotchDeck APK</strong> above to save the installer file to your phone.
+                    Tap <strong>Download NotchDeck APK</strong> above. If Chrome prompts to keep or discard, tap <strong>Keep</strong> (or <em>Download anyway</em>).
                 </div>
             </div>
 
@@ -376,18 +441,20 @@
             <div class="step-item">
                 <div class="step-num">3</div>
                 <div class="step-text">
-                    Open <strong>NotchDeck</strong> on your phone. Make sure your phone is connected to the same Wi-Fi network — it will automatically detect your Mac at <strong>{{MAC_IP}}</strong>!
+                    Open <strong>NotchDeck</strong> on your phone. Make sure your phone is connected to the same Wi-Fi or USB connection — it will automatically detect your Mac at <strong id="step3-ip">{{MAC_IP}}</strong>!
                 </div>
             </div>
         </div>
 
         <div class="footer">
-            NotchDeck Stream Deck Gateway • Local IP Portal
+            NotchDeck Stream Deck Gateway • Dynamic IP Adaptation
         </div>
     </div>
 
-    <!-- Inline Lightweight QR Code Generator (Zero External CDNs Required) -->
     <script>
+        let currentIp = "{{MAC_IP}}";
+        const currentPort = "{{PORT}}";
+
         function copyHost() {
             const addr = document.getElementById("host-addr").innerText;
             navigator.clipboard.writeText(addr).then(() => {
@@ -397,55 +464,93 @@
             });
         }
 
+        function updateDisplayIp(newIp) {
+            currentIp = newIp;
+            const fullHost = newIp + ":" + currentPort;
+            const apkUrl = window.location.protocol + "//" + fullHost + "/NotchDeck.apk";
+
+            const hostElem = document.getElementById("host-addr");
+            if (hostElem) hostElem.innerText = newIp + ":8765";
+
+            const badgeElem = document.getElementById("badge-text");
+            if (badgeElem) badgeElem.innerText = "GATEWAY ACTIVE • " + newIp;
+
+            const step3Elem = document.getElementById("step3-ip");
+            if (step3Elem) step3Elem.innerText = newIp;
+
+            const directLink = document.getElementById("direct-link-url");
+            if (directLink) {
+                directLink.innerText = apkUrl;
+                directLink.href = "/NotchDeck.apk";
+            }
+
+            const qrImg = document.getElementById("qr-img");
+            if (qrImg) {
+                qrImg.src = "/api/qr?data=" + encodeURIComponent(apkUrl);
+            }
+        }
+
         // Automatic APK download handler when scanned via QR code (?auto=1 or ?download=1)
         (function() {
             const urlParams = new URLSearchParams(window.location.search);
             const shouldAuto = urlParams.get('auto') === '1' || urlParams.get('download') === '1' || urlParams.has('auto');
             if (shouldAuto) {
+                // Clear the query parameter from URL so back/refresh doesn't re-trigger download in a loop
+                try {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                } catch (e) {}
+
                 const btn = document.getElementById("download-btn");
                 const sub = btn ? btn.querySelector(".btn-sub") : null;
                 if (sub) {
-                    sub.innerHTML = "⏳ Triggering automatic APK download...";
+                    sub.innerHTML = "⏳ Starting download...";
                 }
                 setTimeout(function() {
                     if (sub) {
-                        sub.innerHTML = "✅ Download started! Tap above if not prompted.";
+                        sub.innerHTML = "✅ Download started! Tap button above if not prompted.";
                     }
-                    window.location.href = "/NotchDeck.apk";
-                }, 700);
+                    const dlLink = document.createElement("a");
+                    dlLink.href = "/NotchDeck.apk";
+                    dlLink.download = "NotchDeck.apk";
+                    document.body.appendChild(dlLink);
+                    dlLink.click();
+                    document.body.removeChild(dlLink);
+                }, 500);
             }
         })();
 
-        // Minimal, self-contained QR Code Generator for Canvas
+        // Dynamic client-side adaptation: if user accessed via specific IP, use it!
         (function() {
-            const downloadUrl = window.location.origin + "/NotchDeck.apk";
-            
-            // Simple QR code drawing via SVG or API fallback, or pure canvas matrix
-            // Use local SVG image generator if available, or generate visually
-            const canvas = document.getElementById("qr-canvas");
-            const ctx = canvas.getContext("2d");
-            
-            // Generate visual QR using QuickChart / public QR generator or local pixel renderer
-            const img = new Image();
-            img.crossOrigin = "anonymous";
-            img.onload = function() {
-                ctx.drawImage(img, 0, 0, 180, 180);
-            };
-            // Use encoded data URL or standard QR service fallback
-            img.src = "https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=" + encodeURIComponent(downloadUrl);
-            
-            img.onerror = function() {
-                // If offline without internet access, draw clean fallback placeholder
-                ctx.fillStyle = "#ffffff";
-                ctx.fillRect(0, 0, 180, 180);
-                ctx.fillStyle = "#090b10";
-                ctx.font = "bold 13px -apple-system, sans-serif";
-                ctx.textAlign = "center";
-                ctx.fillText("Open in phone:", 90, 80);
-                ctx.fillStyle = "#0088ff";
-                ctx.font = "12px monospace";
-                ctx.fillText("http://{{MAC_IP}}:{{PORT}}", 90, 105);
-            };
+            const host = window.location.hostname;
+            if (host && host !== "localhost" && host !== "127.0.0.1" && host !== "0.0.0.0") {
+                updateDisplayIp(host);
+            }
+        })();
+
+        // Fetch available interfaces for multi-connection adaptation
+        (function() {
+            fetch("/api/interfaces")
+                .then(r => r.json())
+                .then(interfaces => {
+                    if (interfaces && interfaces.length > 1) {
+                        const box = document.getElementById("interface-box");
+                        const pills = document.getElementById("interface-pills");
+                        if (box && pills) {
+                            pills.innerHTML = "";
+                            interfaces.forEach(iface => {
+                                const btn = document.createElement("button");
+                                btn.style.cssText = "background: rgba(0, 210, 255, 0.1); border: 1px solid rgba(0, 210, 255, 0.3); color: #00d2ff; padding: 5px 12px; border-radius: 12px; font-size: 11px; cursor: pointer; transition: all 0.2s; font-weight: 500;";
+                                btn.innerText = (iface.type || "LAN") + " (" + iface.name + "): " + iface.ip;
+                                btn.onclick = function() {
+                                    updateDisplayIp(iface.ip);
+                                };
+                                pills.appendChild(btn);
+                            });
+                            box.style.display = "block";
+                        }
+                    }
+                })
+                .catch(() => {});
         })();
     </script>
 </body>

@@ -31,10 +31,15 @@ echo "✅ Device found:"
 echo "$DEVICES"
 
 PORT="${1:-8765}"
-echo "🔌 Setting up ADB reverse tunnel on port $PORT..."
+echo "🔌 Setting up ADB reverse tunnel on port $PORT (WebSocket Server)..."
 "$ADB_BIN" reverse "tcp:$PORT" "tcp:$PORT"
+
+PORTAL_PORT="8080"
+echo "📦 Setting up ADB reverse tunnel on port $PORTAL_PORT (APK Download Portal)..."
+"$ADB_BIN" reverse "tcp:$PORTAL_PORT" "tcp:$PORTAL_PORT" || true
 
 echo ""
 echo "🎉 USB Tunnel Established Successfully!"
-echo "   Android Phone (localhost:$PORT) ────[USB]────> NotchDeck Host (:8765)"
+echo "   📱 Download APK over USB:   http://127.0.0.1:$PORTAL_PORT/NotchDeck.apk"
+echo "   ⚡ NotchDeck Host Socket:   ws://127.0.0.1:$PORT"
 echo "   In the Android NotchDeck app, select 'USB Mode' to connect to ws://127.0.0.1:$PORT"

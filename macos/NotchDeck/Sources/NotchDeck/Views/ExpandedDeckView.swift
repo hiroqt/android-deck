@@ -3,6 +3,7 @@ import SwiftUI
 public struct ExpandedDeckView: View {
     @ObservedObject var phoneDeckService = PhoneDeckService.shared
     public let edge: NotchEdge
+    public let hasPhysicalNotch: Bool
     public let onCollapse: () -> Void
     public let onOpenSettings: () -> Void
     public let onSelectSlotToEdit: (PhoneDeckSlot) -> Void
@@ -11,6 +12,7 @@ public struct ExpandedDeckView: View {
     public init(
         phoneDeckService: PhoneDeckService = .shared,
         edge: NotchEdge = .top,
+        hasPhysicalNotch: Bool = false,
         initialTab: Int = 0,
         onCollapse: @escaping () -> Void,
         onOpenSettings: @escaping () -> Void,
@@ -18,6 +20,7 @@ public struct ExpandedDeckView: View {
     ) {
         self.phoneDeckService = phoneDeckService
         self.edge = edge
+        self.hasPhysicalNotch = hasPhysicalNotch
         self._selectedTab = State(initialValue: initialTab)
         self.onCollapse = onCollapse
         self.onOpenSettings = onOpenSettings
@@ -28,12 +31,14 @@ public struct ExpandedDeckView: View {
     public init(
         configManager: ConfigManager,
         edge: NotchEdge = .top,
+        hasPhysicalNotch: Bool = false,
         onCollapse: @escaping () -> Void,
         onOpenSettings: @escaping () -> Void,
         onEditSlot: @escaping (DeckSlot) -> Void
     ) {
         self.phoneDeckService = .shared
         self.edge = edge
+        self.hasPhysicalNotch = hasPhysicalNotch
         self.onCollapse = onCollapse
         self.onOpenSettings = onOpenSettings
         self.onSelectSlotToEdit = { _ in }
@@ -44,12 +49,14 @@ public struct ExpandedDeckView: View {
         configManager: ConfigManager,
         isEditing: Bool = false,
         edge: NotchEdge = .top,
+        hasPhysicalNotch: Bool = false,
         onCollapse: @escaping () -> Void,
         onOpenSettings: @escaping () -> Void,
         onEditSlot: @escaping (DeckSlot) -> Void
     ) {
         self.phoneDeckService = .shared
         self.edge = edge
+        self.hasPhysicalNotch = hasPhysicalNotch
         self.onCollapse = onCollapse
         self.onOpenSettings = onOpenSettings
         self.onSelectSlotToEdit = { _ in }
@@ -129,7 +136,7 @@ public struct ExpandedDeckView: View {
         }
         .frame(
             width: edge.isVertical ? 280 : 480,
-            height: edge.isVertical ? 380 : 224
+            height: edge.isVertical ? 380 : (hasPhysicalNotch ? 248 : 224)
         )
     }
 
@@ -190,58 +197,74 @@ public struct ExpandedDeckView: View {
 
     // MARK: - Horizontal Top Header
     private var horizontalHeader: some View {
-        HStack(spacing: 10) {
-            // Title with Deck Icon
-            HStack(spacing: 6) {
-                Image(systemName: "square.grid.2x2.fill")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(.cyan)
-
-                Text("NOTCH DECK")
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundColor(Color.white.opacity(0.85))
-            }
-
-            Spacer()
-
-            // Connected Device Badge (Icon + Text, NO EMOJIS)
-            deviceStatusBadge
-
-            Spacer()
-
-            // Action Controls
-            HStack(spacing: 10) {
-                presetQuickMenu
-
-                Button(action: {
-                    withAnimation { phoneDeckService.resetDefaults() }
-                }) {
-                    Image(systemName: "arrow.counterclockwise")
-                        .font(.system(size: 11))
-                        .foregroundColor(Color.white.opacity(0.6))
-                }
-                .buttonStyle(.plain)
-                .help("Reset slots to defaults")
-
-                Button(action: onOpenSettings) {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 12))
-                        .foregroundColor(Color.white.opacity(0.7))
-                }
-                .buttonStyle(.plain)
-                .help("Preferences")
-
-                Button(action: onCollapse) {
-                    Image(systemName: collapseChevronIcon)
+        VStack(spacing: 8) {
+            HStack(spacing: 0) {
+                // Title with Deck Icon (Left Wing)
+                HStack(spacing: 6) {
+                    Image(systemName: "square.grid.2x2.fill")
                         .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(Color.white.opacity(0.7))
+                        .foregroundColor(.cyan)
+
+                    Text("NOTCH DECK")
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .foregroundColor(Color.white.opacity(0.85))
                 }
-                .buttonStyle(.plain)
-                .help("Collapse")
+                .padding(.leading, 20)
+
+                Spacer(minLength: 20)
+
+                if !hasPhysicalNotch {
+                    // Connected Device Badge (Centered only on non-notch Macs)
+                    deviceStatusBadge
+
+                    Spacer(minLength: 20)
+                } else {
+                    // Physical Camera Hardware Clearance in the top row
+                    Spacer()
+                        .frame(width: 196)
+                }
+
+                // Action Controls (Right Wing)
+                HStack(spacing: 10) {
+                    presetQuickMenu
+
+                    Button(action: {
+                        withAnimation { phoneDeckService.resetDefaults() }
+                    }) {
+                        Image(systemName: "arrow.counterclockwise")
+                            .font(.system(size: 11))
+                            .foregroundColor(Color.white.opacity(0.6))
+                    }
+                    .buttonStyle(.plain)
+                    .help("Reset slots to defaults")
+
+                    Button(action: onOpenSettings) {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 12))
+                            .foregroundColor(Color.white.opacity(0.7))
+                    }
+                    .buttonStyle(.plain)
+                    .help("Preferences")
+
+                    Button(action: onCollapse) {
+                        Image(systemName: collapseChevronIcon)
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(Color.white.opacity(0.7))
+                    }
+                    .buttonStyle(.plain)
+                    .help("Collapse")
+                }
+                .padding(.trailing, 20)
+            }
+            .padding(.top, 16)
+
+            if hasPhysicalNotch {
+                // On Macs with a physical camera notch, place deviceStatusBadge centered
+                // right BELOW the camera notch so it is unobstructed and 100% visible!
+                deviceStatusBadge
+                    .padding(.top, 2)
             }
         }
-        .padding(.horizontal, 24)
-        .padding(.top, 16)
     }
 
     private var presetQuickMenu: some View {

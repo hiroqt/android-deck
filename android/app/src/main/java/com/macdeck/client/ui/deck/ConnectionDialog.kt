@@ -10,11 +10,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.macdeck.client.core.network.NetworkGatewayUtils
 import com.macdeck.client.ui.theme.*
+import kotlinx.coroutines.launch
 
 @Composable
 fun ConnectionDialog(
@@ -25,7 +28,19 @@ fun ConnectionDialog(
     onConnectLan: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var lanIpInput by remember { mutableStateOf(if (!isUsbMode && currentHost != "127.0.0.1") currentHost else "192.168.1.3") }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var isScanning by remember { mutableStateOf(false) }
+    val detectedGateway = remember { NetworkGatewayUtils.getDhcpGatewayIp(context) }
+    var lanIpInput by remember {
+        mutableStateOf(
+            if (!isUsbMode && currentHost != "127.0.0.1" && currentHost.isNotBlank()) {
+                currentHost
+            } else {
+                detectedGateway ?: "192.168.1.3"
+            }
+        )
+    }
     var selectedTab by remember { mutableStateOf(if (isUsbMode) 0 else 1) }
 
     Dialog(onDismissRequest = onDismiss) {
@@ -129,7 +144,10 @@ fun ConnectionDialog(
 
                     OutlinedTextField(
                         value = lanIpInput,
-                        onValueChange = { lanIpInput = it },
+                        onValueChange = { input ->
+                            val extracted = NetworkGatewayUtils.extractIpFromText(input)
+                            lanIpInput = extracted ?: input.trim()
+                        },
                         singleLine = true,
                         placeholder = { Text("e.g. 192.168.1.3") },
                         colors = OutlinedTextFieldDefaults.colors(
@@ -142,7 +160,59 @@ fun ConnectionDialog(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    Spacer(modifier = Modifier.height(18.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Auto-Detect Button
+                    OutlinedButton(
+                        onClick = {
+                            scope.launch {
+                                isScanning = true
+                                val found = NetworkGatewayUtils.discoverMacHost(context)
+                                isScanning = false
+                                if (found != null) {
+                                    lanIpInput = found
+                                    onConnectLan(found)
+                                    onDismiss()
+                                }
+                            }
+                        },
+                        enabled = !isScanning,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (isScanning) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = DeckAccent
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Scanning Wi-Fi Network...", fontSize = 12.sp)
+                        } else {
+                            Text("🔍 Auto-Detect Mac on Wi-Fi", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+
+                    if (detectedGateway != null && detectedGateway != lanIpInput) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .align(Alignment.Start)
+                                .clip(RoundedCornerShape(6.dp))
+                                .clickable { lanIpInput = detectedGateway }
+                                .padding(vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "💡 Gateway IP: $detectedGateway",
+                                color = DeckAccent,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     Button(
                         onClick = {

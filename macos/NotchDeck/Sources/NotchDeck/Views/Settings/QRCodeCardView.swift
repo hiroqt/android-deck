@@ -22,16 +22,18 @@ public enum DownloadTargetMode: String, CaseIterable, Identifiable {
 
 public struct QRCodeCardView: View {
     @ObservedObject var phoneDeckService = PhoneDeckService.shared
+    @ObservedObject var networkHelper = NetworkHelper.shared
     @State private var targetMode: DownloadTargetMode = .autoPortal
     @State private var copied: Bool = false
     @State private var isEnlarged: Bool = false
 
     private var localIP: String {
-        NetworkHelper.localIPAddress
+        networkHelper.activeIPAddress
     }
 
-    public init(phoneDeckService: PhoneDeckService = .shared) {
+    public init(phoneDeckService: PhoneDeckService = .shared, networkHelper: NetworkHelper = .shared) {
         self.phoneDeckService = phoneDeckService
+        self.networkHelper = networkHelper
     }
 
     public var targetURL: String {
@@ -108,7 +110,7 @@ public struct QRCodeCardView: View {
                             .controlSize(.mini)
                             .buttonStyle(.borderedProminent)
                         } else {
-                            Text("Latest Universal APK")
+                            Text("Dynamic IP Adapted")
                                 .font(.system(size: 9, weight: .bold))
                                 .foregroundColor(.accentColor)
                                 .padding(.horizontal, 6)
@@ -121,6 +123,56 @@ public struct QRCodeCardView: View {
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+
+                    // Dynamic Network Interface Selection
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack {
+                            Text("Network Interface:")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(.secondary)
+
+                            Spacer()
+
+                            Button(action: {
+                                networkHelper.refresh()
+                            }) {
+                                HStack(spacing: 3) {
+                                    Image(systemName: "arrow.clockwise")
+                                        .font(.system(size: 9))
+                                    Text("Re-scan")
+                                        .font(.system(size: 9, weight: .medium))
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundColor(.accentColor)
+                        }
+
+                        if networkHelper.availableInterfaces.count > 1 {
+                            Picker("Interface", selection: Binding(
+                                get: { networkHelper.selectedInterfaceId ?? networkHelper.availableInterfaces.first?.id ?? "" },
+                                set: { networkHelper.selectInterface(id: $0.isEmpty ? nil : $0) }
+                            )) {
+                                ForEach(networkHelper.availableInterfaces) { iface in
+                                    Text(iface.displayName).tag(iface.id)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .controlSize(.small)
+                        } else {
+                            HStack(spacing: 6) {
+                                Image(systemName: networkHelper.availableInterfaces.first?.type.iconName ?? "wifi")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.accentColor)
+                                Text(networkHelper.availableInterfaces.first?.displayName ?? "Auto: \(localIP)")
+                                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                    .foregroundColor(.primary)
+                                Spacer()
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(RoundedRectangle(cornerRadius: 6).fill(Color(NSColor.textBackgroundColor)))
+                        }
+                    }
 
                     // Target Mode Picker
                     VStack(alignment: .leading, spacing: 3) {

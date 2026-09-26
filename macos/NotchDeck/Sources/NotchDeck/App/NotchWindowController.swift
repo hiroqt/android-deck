@@ -28,6 +28,8 @@ public final class NotchWindowController: NSObject, ObservableObject {
     private struct RootWrapperView: View {
         @ObservedObject var controller: NotchWindowController
         let hasPhysicalNotch: Bool
+        var physicalNotchWidth: CGFloat = 180
+        var topSafeAreaInset: CGFloat = 32
 
         var body: some View {
             NotchDeckRootView(
@@ -39,6 +41,8 @@ public final class NotchWindowController: NSObject, ObservableObject {
                 ),
                 edge: controller.currentEdge,
                 hasPhysicalNotch: hasPhysicalNotch,
+                physicalNotchWidth: physicalNotchWidth,
+                topSafeAreaInset: topSafeAreaInset,
                 stretchDistance: controller.stretchDistance,
                 lateralOffset: controller.lateralOffset,
                 isDetached: controller.isDetached,
@@ -87,13 +91,27 @@ public final class NotchWindowController: NSObject, ObservableObject {
         NotificationCenter.default.removeObserver(self)
     }
 
-    private func setupWindow() {
-        guard let screen = NSScreen.main ?? NSScreen.screens.first else { return }
-        let geo = ScreenGeometry(
+    public func currentScreenGeometry(for screen: NSScreen) -> ScreenGeometry {
+        var notchWidth: CGFloat? = nil
+        if #available(macOS 12.0, *) {
+            if let left = screen.auxiliaryTopLeftArea, let right = screen.auxiliaryTopRightArea {
+                let w = right.minX - left.maxX
+                if w > 50 {
+                    notchWidth = w
+                }
+            }
+        }
+        return ScreenGeometry(
             screenWidth: screen.frame.width,
             screenHeight: screen.frame.height,
-            topSafeAreaInset: screen.safeAreaInsets.top
+            topSafeAreaInset: screen.safeAreaInsets.top,
+            physicalNotchWidth: notchWidth
         )
+    }
+
+    private func setupWindow() {
+        guard let screen = NSScreen.main ?? NSScreen.screens.first else { return }
+        let geo = currentScreenGeometry(for: screen)
 
         let initialFrame = geo.panelFrame(
             for: currentEdge,
@@ -107,7 +125,9 @@ public final class NotchWindowController: NSObject, ObservableObject {
 
         let rootView = RootWrapperView(
             controller: self,
-            hasPhysicalNotch: geo.hasPhysicalNotch
+            hasPhysicalNotch: geo.hasPhysicalNotch,
+            physicalNotchWidth: geo.physicalNotchWidth,
+            topSafeAreaInset: geo.topSafeAreaInset
         )
 
         let hostingView = NotchHostingView(rootView: rootView)
@@ -142,11 +162,7 @@ public final class NotchWindowController: NSObject, ObservableObject {
             hostingView.currentEdge = edge
         }
 
-        let geo = ScreenGeometry(
-            screenWidth: screen.frame.width,
-            screenHeight: screen.frame.height,
-            topSafeAreaInset: screen.safeAreaInsets.top
-        )
+        let geo = currentScreenGeometry(for: screen)
 
         let targetRect = geo.panelFrame(
             for: edge,
@@ -188,11 +204,7 @@ public final class NotchWindowController: NSObject, ObservableObject {
             self.isExpanded = expanded
         }
 
-        let geo = ScreenGeometry(
-            screenWidth: screen.frame.width,
-            screenHeight: screen.frame.height,
-            topSafeAreaInset: screen.safeAreaInsets.top
-        )
+        let geo = currentScreenGeometry(for: screen)
 
         let targetRect = geo.panelFrame(
             for: currentEdge,
@@ -224,11 +236,7 @@ public final class NotchWindowController: NSObject, ObservableObject {
         if self.isExpanded {
             self.isExpanded = false
             if let screen = panel.screen ?? NSScreen.main ?? NSScreen.screens.first {
-                let geo = ScreenGeometry(
-                    screenWidth: screen.frame.width,
-                    screenHeight: screen.frame.height,
-                    topSafeAreaInset: screen.safeAreaInsets.top
-                )
+                let geo = currentScreenGeometry(for: screen)
                 let collapsedFrame = geo.panelFrame(
                     for: currentEdge,
                     isExpanded: false,
@@ -302,11 +310,7 @@ public final class NotchWindowController: NSObject, ObservableObject {
             self.stretchDistance = pullInward
             self.lateralOffset = lateral
 
-            let geo = ScreenGeometry(
-                screenWidth: screen.frame.width,
-                screenHeight: screen.frame.height,
-                topSafeAreaInset: screen.safeAreaInsets.top
-            )
+            let geo = currentScreenGeometry(for: screen)
             let baseFrame = geo.panelFrame(
                 for: currentEdge,
                 isExpanded: false,
@@ -419,11 +423,7 @@ public final class NotchWindowController: NSObject, ObservableObject {
                 // Released in open screen space (not placed in side or top dock)
                 // Retract smoothly back to the current edge dock
                 self.dragTargetEdge = nil
-                let geo = ScreenGeometry(
-                    screenWidth: screen.frame.width,
-                    screenHeight: screen.frame.height,
-                    topSafeAreaInset: screen.safeAreaInsets.top
-                )
+                let geo = currentScreenGeometry(for: screen)
                 let homeRect = geo.panelFrame(
                     for: currentEdge,
                     isExpanded: false,
@@ -440,11 +440,7 @@ public final class NotchWindowController: NSObject, ObservableObject {
         } else {
             // Retract elastic stretch smoothly back into bezel (no bounce)
             self.dragTargetEdge = nil
-            let geo = ScreenGeometry(
-                screenWidth: screen.frame.width,
-                screenHeight: screen.frame.height,
-                topSafeAreaInset: screen.safeAreaInsets.top
-            )
+            let geo = currentScreenGeometry(for: screen)
             let targetRect = geo.panelFrame(
                 for: currentEdge,
                 isExpanded: false,
@@ -744,11 +740,15 @@ public final class NotchWindowController: NSObject, ObservableObject {
         hideSideNotchBubble()
         guard let screen = panel?.screen ?? NSScreen.main ?? NSScreen.screens.first,
               let panel = self.panel else { return }
-        let geo = ScreenGeometry(
-            screenWidth: screen.frame.width,
-            screenHeight: screen.frame.height,
-            topSafeAreaInset: screen.safeAreaInsets.top
-        )
+        let geo = currentScreenGeometry(for: screen)
+        if let hostingView = panel.contentView as? NotchHostingView<RootWrapperView> {
+            hostingView.rootView = RootWrapperView(
+                controller: self,
+                hasPhysicalNotch: geo.hasPhysicalNotch,
+                physicalNotchWidth: geo.physicalNotchWidth,
+                topSafeAreaInset: geo.topSafeAreaInset
+            )
+        }
         let targetRect = geo.panelFrame(
             for: currentEdge,
             isExpanded: isExpanded,

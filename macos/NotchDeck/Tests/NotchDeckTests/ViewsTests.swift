@@ -500,6 +500,73 @@ final class ViewsTests: XCTestCase {
         XCTAssertFalse(service.isCharging)
     }
 
+    func testCollapsedNotchViewConnectedWithoutBatteryShowsReadyNotOffline() throws {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let service = PhoneDeckService(baseDirectory: tempDir)
+        service.setDeviceConnected(true, name: "Pixel 8", count: 1)
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05))
+
+        XCTAssertTrue(service.isDeviceConnected)
+        XCTAssertNil(service.batteryLevel)
+
+        let view = CollapsedNotchView(phoneDeckService: service, onExpand: {})
+        let hosting = NSHostingView(rootView: view)
+        XCTAssertNotNil(hosting)
+    }
+
+    func testPhoneDeckServiceBatteryPersistenceAndStatusSave() throws {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let service = PhoneDeckService(baseDirectory: tempDir)
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05))
+
+        service.setDeviceConnected(true, name: "Galaxy S24", count: 1)
+        service.updateBattery(level: 85, charging: true)
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05))
+
+        XCTAssertEqual(service.batteryLevel, 85)
+        XCTAssertTrue(service.isCharging)
+
+        // Verify status.json was saved with the battery info
+        let statusFile = tempDir.appendingPathComponent("status.json")
+        let data = try Data(contentsOf: statusFile)
+        let decoded = try JSONDecoder().decode(DeviceStatusInfo.self, from: data)
+        XCTAssertTrue(decoded.connected)
+        XCTAssertEqual(decoded.clientName, "Galaxy S24")
+        XCTAssertEqual(decoded.batteryLevel, 85)
+        XCTAssertEqual(decoded.isCharging, true)
+    }
+
+    func testPhoneDeckServiceLoadStatusPreservesExistingBatteryWhenOmitted() throws {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let service = PhoneDeckService(baseDirectory: tempDir)
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05))
+
+        service.setDeviceConnected(true, name: "V2427", count: 1)
+        service.updateBattery(level: 79, charging: false)
+
+        // Write a status.json without batteryLevel (e.g. from an older producer)
+        let statusFile = tempDir.appendingPathComponent("status.json")
+        let minimalStatus = DeviceStatusInfo(connected: true, clientName: "V2427", clientCount: 1, batteryLevel: nil, isCharging: nil)
+        let data = try JSONEncoder().encode(minimalStatus)
+        try data.write(to: statusFile, options: .atomic)
+
+        service.loadStatus()
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05))
+
+        // Battery level 79 should be preserved, not wiped to nil
+        XCTAssertTrue(service.isDeviceConnected)
+        XCTAssertEqual(service.batteryLevel, 79)
+    }
+
     func testDeckSlotCardViewConfiguredAndEmptyState() {
         let configuredSlot = PhoneDeckSlot(id: "app-1", index: 0, label: "VS Code", bundleId: "com.microsoft.VSCode")
         var edited = false

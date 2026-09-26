@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import TopNotchIsland from './components/TopNotchIsland';
 import FigureShowcase from './components/FigureShowcase';
+import RequirementsSection from './components/RequirementsSection';
+import FaqAccordion from './components/FaqAccordion';
 import CtaMacbookDemo from './components/CtaMacbookDemo';
 
 function AppleLetterIcon({ className }: { className?: string }) {
@@ -200,6 +202,12 @@ export default function HomePage() {
           </aside>
         </section>
 
+        {/* System Requirements */}
+        <RequirementsSection />
+
+        {/* Frequently Asked Questions */}
+        <FaqAccordion />
+
         <section className="closing-section" aria-labelledby="closing-title">
           <div className="closing-header">
             <div>
@@ -220,6 +228,8 @@ export default function HomePage() {
           <span>© 2026 NotchDeck</span>
           <nav className="links" aria-label="Footer Navigation">
             <a href="#how-it-works">How it works</a>
+            <a href="#requirements">Requirements</a>
+            <a href="#faq">FAQ</a>
             <a
               href="https://github.com/arnel/android-deck"
               target="_blank"

@@ -184,5 +184,32 @@ class ProtocolSerializationTest {
         assertEquals(true, decoded.payload.isCharging)
         assertEquals("usb", decoded.payload.plugged)
     }
+
+    @Test
+    fun testSystemStatusSerialization() {
+        val statusEnv = Envelope(
+            type = "system.status",
+            requestId = "status-123",
+            payload = SystemStatusPayload(
+                volume = 80,
+                brightness = 65,
+                isWifiOn = true,
+                isBluetoothOn = true,
+                audioDevices = listOf("MacBook Air Speakers", "AirPods Pro"),
+                currentAudioDevice = "MacBook Air Speakers"
+            )
+        )
+        val jsonStr = json.encodeToString(statusEnv)
+        val decoded = json.decodeFromString<Envelope<SystemStatusPayload>>(jsonStr)
+
+        assertEquals("system.status", decoded.type)
+        assertEquals(80, decoded.payload.volume)
+        assertEquals(65, decoded.payload.brightness)
+        assertEquals(true, decoded.payload.isWifiOn)
+        assertEquals(true, decoded.payload.isBluetoothOn)
+        assertEquals(2, decoded.payload.audioDevices.size)
+        assertEquals("MacBook Air Speakers", decoded.payload.currentAudioDevice)
+    }
 }
+
 

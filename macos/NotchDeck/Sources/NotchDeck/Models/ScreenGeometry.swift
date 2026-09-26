@@ -4,13 +4,27 @@ public struct ScreenGeometry: Equatable {
     public var screenWidth: CGFloat
     public var screenHeight: CGFloat
     public var topSafeAreaInset: CGFloat
+    public var physicalNotchWidth: CGFloat
     public var hasPhysicalNotch: Bool
 
-    public init(screenWidth: CGFloat, screenHeight: CGFloat, topSafeAreaInset: CGFloat) {
+    public init(
+        screenWidth: CGFloat,
+        screenHeight: CGFloat,
+        topSafeAreaInset: CGFloat,
+        physicalNotchWidth: CGFloat? = nil
+    ) {
         self.screenWidth = screenWidth
         self.screenHeight = screenHeight
         self.topSafeAreaInset = topSafeAreaInset
         self.hasPhysicalNotch = topSafeAreaInset > 24.0
+        if let customWidth = physicalNotchWidth {
+            self.physicalNotchWidth = customWidth
+        } else {
+            // Default physical notch width across M-series Macs:
+            // 14" MBP / MacBook Air: ~179-180pt
+            // 16" MBP: ~210pt
+            self.physicalNotchWidth = (screenWidth >= 1700 && topSafeAreaInset > 24.0) ? 210.0 : 180.0
+        }
     }
 
     public var notchCollapsedSize: CGSize {
@@ -21,14 +35,27 @@ public struct ScreenGeometry: Equatable {
         return expandedSize(for: .top)
     }
 
+    public static func physicalCollapsedWidth(physicalNotchWidth: CGFloat) -> CGFloat {
+        return max(360, physicalNotchWidth + 180)
+    }
+
+    public static func physicalCollapsedHeight(topSafeAreaInset: CGFloat) -> CGFloat {
+        return max(44, topSafeAreaInset + 12)
+    }
+
     public func collapsedSize(for edge: NotchEdge) -> CGSize {
         if edge.isVertical {
             return CGSize(width: 48, height: 116)
         } else {
             if hasPhysicalNotch {
-                return CGSize(width: 180, height: max(32, topSafeAreaInset))
+                // To ensure the notch is completely unobstructed on any M-series Mac:
+                // 1. Width extends generously beyond the camera cutout on left and right (giving ~80-95pt wings)
+                // 2. Height extends 12pt below the menu bar into display space (sleek tactile bottom chin)
+                let width = Self.physicalCollapsedWidth(physicalNotchWidth: physicalNotchWidth)
+                let height = Self.physicalCollapsedHeight(topSafeAreaInset: topSafeAreaInset)
+                return CGSize(width: width, height: height)
             } else {
-                return CGSize(width: 180, height: 34)
+                return CGSize(width: 184, height: 34)
             }
         }
     }
@@ -37,7 +64,11 @@ public struct ScreenGeometry: Equatable {
         if edge.isVertical {
             return CGSize(width: 280, height: 380)
         } else {
-            return CGSize(width: 480, height: 224)
+            if hasPhysicalNotch {
+                return CGSize(width: 480, height: 248)
+            } else {
+                return CGSize(width: 480, height: 224)
+            }
         }
     }
 

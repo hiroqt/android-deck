@@ -27,12 +27,14 @@ data class HelloPayload(
     val platform: String = "Android",
     val appVersion: String = "1.0.0",
     val batteryLevel: Int? = null,
+    val level: Int? = null,
     val isCharging: Boolean? = null
 )
 
 @Serializable
 data class DeviceBatteryPayload(
     val level: Int,
+    val batteryLevel: Int? = null,
     val isCharging: Boolean,
     val plugged: String? = null
 )
@@ -77,4 +79,15 @@ data class ActionResultPayload(
 )
 
 @Serializable
+data class SystemStatusPayload(
+    val volume: Int = 75,
+    val brightness: Int = 80,
+    val isWifiOn: Boolean = true,
+    val isBluetoothOn: Boolean = true,
+    val audioDevices: List<String> = emptyList(),
+    val currentAudioDevice: String = ""
+)
+
+@Serializable
 class EmptyPayload
+

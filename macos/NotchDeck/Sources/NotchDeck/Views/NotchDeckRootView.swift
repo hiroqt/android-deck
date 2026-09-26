@@ -6,6 +6,8 @@ public struct NotchDeckRootView: View {
     @Binding var isExpanded: Bool
     public let edge: NotchEdge
     public let hasPhysicalNotch: Bool
+    public var physicalNotchWidth: CGFloat = 180
+    public var topSafeAreaInset: CGFloat = 32
     public var stretchDistance: CGFloat = 0.0
     public var lateralOffset: CGFloat = 0.0
     public var isDetached: Bool = false
@@ -25,6 +27,8 @@ public struct NotchDeckRootView: View {
         isExpanded: Binding<Bool>,
         edge: NotchEdge = .top,
         hasPhysicalNotch: Bool = false,
+        physicalNotchWidth: CGFloat = 180,
+        topSafeAreaInset: CGFloat = 32,
         stretchDistance: CGFloat = 0.0,
         lateralOffset: CGFloat = 0.0,
         isDetached: Bool = false,
@@ -41,6 +45,8 @@ public struct NotchDeckRootView: View {
         self._isExpanded = isExpanded
         self.edge = edge
         self.hasPhysicalNotch = hasPhysicalNotch
+        self.physicalNotchWidth = physicalNotchWidth
+        self.topSafeAreaInset = topSafeAreaInset
         self.stretchDistance = stretchDistance
         self.lateralOffset = lateralOffset
         self.isDetached = isDetached
@@ -66,7 +72,11 @@ public struct NotchDeckRootView: View {
         if edge.isVertical {
             return (isExpanded ? 280 : 48) + stretchDistance
         } else {
-            return isExpanded ? 480 : 180
+            if isExpanded {
+                return 480
+            } else {
+                return hasPhysicalNotch ? ScreenGeometry.physicalCollapsedWidth(physicalNotchWidth: physicalNotchWidth) : 184
+            }
         }
     }
 
@@ -77,7 +87,12 @@ public struct NotchDeckRootView: View {
         if edge.isVertical {
             return isExpanded ? 380 : 116
         } else {
-            return (isExpanded ? 224 : 32) + stretchDistance
+            if isExpanded {
+                return hasPhysicalNotch ? 248 : 224
+            } else {
+                let baseHeight = hasPhysicalNotch ? ScreenGeometry.physicalCollapsedHeight(topSafeAreaInset: topSafeAreaInset) : 34
+                return baseHeight + stretchDistance
+            }
         }
     }
 
@@ -141,8 +156,8 @@ public struct NotchDeckRootView: View {
         ZStack(alignment: containerAlignment) {
             LiquidGlassBackground(
                 edge: edge,
-                cornerRadius: isDetached ? 20 : (isExpanded ? 24 : (hasPhysicalNotch && edge == .top ? 12 : 18)),
-                curlRadius: (hasPhysicalNotch && edge == .top && !isExpanded) ? 0 : 14,
+                cornerRadius: isDetached ? 20 : (isExpanded ? 24 : (hasPhysicalNotch && edge == .top ? 14 : 18)),
+                curlRadius: (hasPhysicalNotch && edge == .top && !isExpanded) ? 12 : 14,
                 specularIntensity: configManager.config.appearance.specularIntensity,
                 isExpanded: isExpanded,
                 stretchDistance: stretchDistance,
@@ -170,6 +185,7 @@ public struct NotchDeckRootView: View {
                 ExpandedDeckView(
                     phoneDeckService: phoneDeckService,
                     edge: edge,
+                    hasPhysicalNotch: hasPhysicalNotch,
                     onCollapse: {
                         withAnimation(.easeInOut(duration: 0.26)) {
                             isExpanded = false
@@ -187,6 +203,9 @@ public struct NotchDeckRootView: View {
                     phoneDeckService: phoneDeckService,
                     edge: edge,
                     hasPhysicalNotch: hasPhysicalNotch,
+                    notchWidth: hasPhysicalNotch ? ScreenGeometry.physicalCollapsedWidth(physicalNotchWidth: physicalNotchWidth) : 184,
+                    notchHeight: hasPhysicalNotch ? ScreenGeometry.physicalCollapsedHeight(topSafeAreaInset: topSafeAreaInset) : 34,
+                    physicalNotchWidth: physicalNotchWidth,
                     onExpand: {
                         withAnimation(.easeInOut(duration: 0.26)) {
                             isExpanded = true

@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.macdeck.client.core.network.ConnectionState
 import com.macdeck.client.core.network.DeckWebSocketClient
 import com.macdeck.client.ui.theme.*
 
@@ -40,23 +41,54 @@ fun ControlPanelView(
     modifier: Modifier = Modifier
 ) {
     val view = LocalView.current
+    val connectionState by client.connectionState.collectAsState()
+    val systemStatus by client.systemStatus.collectAsState()
 
     var isBluetoothOn by remember { mutableStateOf(true) }
     var isWifiOn by remember { mutableStateOf(true) }
     var volume by remember { mutableFloatStateOf(0.75f) }
     var brightness by remember { mutableFloatStateOf(0.80f) }
+    var isDraggingVolume by remember { mutableStateOf(false) }
+    var isDraggingBrightness by remember { mutableStateOf(false) }
 
-    val audioDevices = remember {
-        listOf(
-            "MacBook Air Speakers",
-            "AirPods Pro",
-            "PERSONA 2006",
-            "DisplayPort (External)",
-            "Headphones (3.5mm)"
+    var audioDevices by remember {
+        mutableStateOf(
+            listOf(
+                "MacBook Air Speakers",
+                "AirPods Pro",
+                "Headphones (3.5mm)"
+            )
         )
     }
-    var selectedAudioDevice by remember { mutableStateOf(audioDevices[0]) }
+    var selectedAudioDevice by remember { mutableStateOf("MacBook Air Speakers") }
     var showDeviceDialog by remember { mutableStateOf(false) }
+
+    // Request system status whenever view appears or connects
+    LaunchedEffect(connectionState) {
+        if (connectionState == ConnectionState.CONNECTED) {
+            client.requestSystemStatus()
+        }
+    }
+
+    // Sync with real status updates from Mac
+    LaunchedEffect(systemStatus) {
+        systemStatus?.let { status ->
+            if (!isDraggingVolume) {
+                volume = (status.volume.coerceIn(0, 100)) / 100f
+            }
+            if (!isDraggingBrightness) {
+                brightness = (status.brightness.coerceIn(0, 100)) / 100f
+            }
+            isBluetoothOn = status.isBluetoothOn
+            isWifiOn = status.isWifiOn
+            if (status.audioDevices.isNotEmpty()) {
+                audioDevices = status.audioDevices
+            }
+            if (status.currentAudioDevice.isNotBlank()) {
+                selectedAudioDevice = status.currentAudioDevice
+            }
+        }
+    }
 
     BoxWithConstraints(
         modifier = modifier
@@ -123,8 +155,12 @@ fun ControlPanelView(
                     // Brightness Card
                     BrightnessControlCard(
                         brightness = brightness,
-                        onBrightnessChange = { brightness = it },
+                        onBrightnessChange = {
+                            isDraggingBrightness = true
+                            brightness = it
+                        },
                         onBrightnessChangeFinished = {
+                            isDraggingBrightness = false
                             client.sendActionInvoke("sys_brightness", "set:${(brightness * 100).toInt()}")
                         },
                         modifier = Modifier
@@ -142,8 +178,12 @@ fun ControlPanelView(
                     VolumeControlCard(
                         volume = volume,
                         selectedDevice = selectedAudioDevice,
-                        onVolumeChange = { volume = it },
+                        onVolumeChange = {
+                            isDraggingVolume = true
+                            volume = it
+                        },
                         onVolumeChangeFinished = {
+                            isDraggingVolume = false
                             client.sendActionInvoke("sys_volume", "set:${(volume * 100).toInt()}")
                         },
                         onSelectDeviceClick = {
@@ -163,6 +203,43 @@ fun ControlPanelView(
                     .padding(bottom = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
+                // If not connected, show warning banner
+                if (connectionState != ConnectionState.CONNECTED) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(DeckWarning.copy(alpha = 0.15f))
+                            .border(1.dp, DeckWarning.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
+                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.CloudOff,
+                                contentDescription = null,
+                                tint = DeckWarning,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = "Control Panel Disconnected",
+                                    color = DeckWarning,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "Connecting to Mac... Controls will sync automatically",
+                                    color = TextSecondary,
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+                    }
+                }
+
                 // Row: Bluetooth & Wi-Fi Toggles
                 Row(
                     modifier = Modifier
@@ -207,8 +284,12 @@ fun ControlPanelView(
                 VolumeControlCard(
                     volume = volume,
                     selectedDevice = selectedAudioDevice,
-                    onVolumeChange = { volume = it },
+                    onVolumeChange = {
+                        isDraggingVolume = true
+                        volume = it
+                    },
                     onVolumeChangeFinished = {
+                        isDraggingVolume = false
                         client.sendActionInvoke("sys_volume", "set:${(volume * 100).toInt()}")
                     },
                     onSelectDeviceClick = {
@@ -221,8 +302,12 @@ fun ControlPanelView(
                 // Brightness Card
                 BrightnessControlCard(
                     brightness = brightness,
-                    onBrightnessChange = { brightness = it },
+                    onBrightnessChange = {
+                        isDraggingBrightness = true
+                        brightness = it
+                    },
                     onBrightnessChangeFinished = {
+                        isDraggingBrightness = false
                         client.sendActionInvoke("sys_brightness", "set:${(brightness * 100).toInt()}")
                     },
                     modifier = Modifier.fillMaxWidth()

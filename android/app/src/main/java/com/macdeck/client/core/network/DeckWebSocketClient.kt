@@ -57,6 +57,9 @@ class DeckWebSocketClient(
     private val _currentProfile = MutableStateFlow<ProfileSnapshotPayload?>(null)
     val currentProfile: StateFlow<ProfileSnapshotPayload?> = _currentProfile.asStateFlow()
 
+    private val _systemStatus = MutableStateFlow<SystemStatusPayload?>(null)
+    val systemStatus: StateFlow<SystemStatusPayload?> = _systemStatus.asStateFlow()
+
     private val _tileStates = MutableStateFlow<Map<String, TileStatus>>(emptyMap())
     val tileStates: StateFlow<Map<String, TileStatus>> = _tileStates.asStateFlow()
 
@@ -74,6 +77,8 @@ class DeckWebSocketClient(
         initiateConnection()
     }
 
+    private var batterySyncJob: Job? = null
+
     fun sendBatteryUpdate(info: BatteryInfo) {
         if (_connectionState.value != ConnectionState.CONNECTED) return
         val envelope = Envelope(
@@ -81,6 +86,7 @@ class DeckWebSocketClient(
             requestId = UUID.randomUUID().toString(),
             payload = DeviceBatteryPayload(
                 level = info.level,
+                batteryLevel = info.level,
                 isCharging = info.isCharging,
                 plugged = info.plugged
             )
@@ -90,6 +96,25 @@ class DeckWebSocketClient(
         } catch (e: Exception) {
             Log.e(TAG, "Failed to send battery update", e)
         }
+    }
+
+    private fun startBatterySync() {
+        batterySyncJob?.cancel()
+        batterySyncJob = scope.launch {
+            while (isActive && _connectionState.value == ConnectionState.CONNECTED) {
+                delay(30_000L)
+                if (_connectionState.value == ConnectionState.CONNECTED) {
+                    batteryProvider?.invoke()?.let { info ->
+                        sendBatteryUpdate(info)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun stopBatterySync() {
+        batterySyncJob?.cancel()
+        batterySyncJob = null
     }
 
     private fun initiateConnection() {
@@ -119,10 +144,22 @@ class DeckWebSocketClient(
                         platform = "Android",
                         appVersion = "1.0.0",
                         batteryLevel = currentBattery?.level,
+                        level = currentBattery?.level,
                         isCharging = currentBattery?.isCharging
                     )
                 )
                 webSocket.send(json.encodeToString(helloEnvelope))
+
+                // Immediately send explicit battery packet if available
+                currentBattery?.let {
+                    sendBatteryUpdate(it)
+                }
+
+                // Request initial system status (volume, brightness, toggles, devices)
+                requestSystemStatus()
+
+                // Start periodic battery sync while connected
+                startBatterySync()
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {
@@ -133,10 +170,12 @@ class DeckWebSocketClient(
 
             override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
                 Log.d(TAG, "WebSocket closing: $code / $reason")
+                stopBatterySync()
             }
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                 Log.d(TAG, "WebSocket closed: $code / $reason")
+                stopBatterySync()
                 if (shouldAutoReconnect) {
                     scheduleReconnect()
                 } else {
@@ -146,6 +185,7 @@ class DeckWebSocketClient(
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                 Log.e(TAG, "WebSocket failure: ${t.message}")
+                stopBatterySync()
                 _lastErrorMessage.value = t.localizedMessage ?: t.message
                 if (shouldAutoReconnect) {
                     scheduleReconnect()
@@ -180,6 +220,11 @@ class DeckWebSocketClient(
                     _isRefreshing.value = false
                     Log.d(TAG, "Received profile: ${snapshotEnv.payload.name} with ${snapshotEnv.payload.controls.size} controls")
                 }
+                "system.status" -> {
+                    val statusEnv = json.decodeFromString<Envelope<SystemStatusPayload>>(text)
+                    _systemStatus.value = statusEnv.payload
+                    Log.d(TAG, "Received system status: vol=${statusEnv.payload.volume}%, bri=${statusEnv.payload.brightness}%, dev=${statusEnv.payload.currentAudioDevice}")
+                }
                 "action.result" -> {
                     val resultEnv = json.decodeFromString<Envelope<ActionResultPayload>>(text)
                     val result = resultEnv.payload
@@ -187,6 +232,7 @@ class DeckWebSocketClient(
                 }
                 "hello.ack" -> {
                     Log.d(TAG, "Handshake acknowledged by Mac")
+                    requestSystemStatus()
                 }
                 "pong" -> {
                     // Ping responded
@@ -194,6 +240,17 @@ class DeckWebSocketClient(
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error parsing message: ${e.message}", e)
+        }
+    }
+
+    fun requestSystemStatus() {
+        if (_connectionState.value == ConnectionState.CONNECTED) {
+            val env = Envelope(
+                type = "system.status.request",
+                requestId = UUID.randomUUID().toString(),
+                payload = EmptyPayload()
+            )
+            webSocket?.send(json.encodeToString(env))
         }
     }
 
@@ -207,6 +264,7 @@ class DeckWebSocketClient(
                     payload = EmptyPayload()
                 )
                 val sent = webSocket?.send(json.encodeToString(env)) ?: false
+                requestSystemStatus()
                 if (!sent) {
                     initiateConnection()
                 }
@@ -236,7 +294,7 @@ class DeckWebSocketClient(
     }
 
     private fun handleActionResult(result: ActionResultPayload) {
-        val status = if (result.status == "OK") TileStatus.SUCCESS else TileStatus.ERROR
+        val status = if (result.status.equals("OK", ignoreCase = true) || result.status.equals("success", ignoreCase = true)) TileStatus.SUCCESS else TileStatus.ERROR
         setTileStatus(result.controlId, status)
         clearTileStatusAfterDelay(result.controlId, if (status == TileStatus.SUCCESS) 600 else 1800)
     }
@@ -260,6 +318,7 @@ class DeckWebSocketClient(
 
     fun disconnect() {
         shouldAutoReconnect = false
+        stopBatterySync()
         webSocket?.close(1000, "User disconnected")
         webSocket = null
         _connectionState.value = ConnectionState.DISCONNECTED

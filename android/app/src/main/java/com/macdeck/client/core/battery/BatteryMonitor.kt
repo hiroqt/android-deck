@@ -75,9 +75,6 @@ class BatteryMonitor(private val context: Context) {
         }
 
         val status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
-        val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
-                status == BatteryManager.BATTERY_STATUS_FULL
-
         val plugged = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1)
         val plugSource = when (plugged) {
             BatteryManager.BATTERY_PLUGGED_USB -> "usb"
@@ -85,6 +82,11 @@ class BatteryMonitor(private val context: Context) {
             BatteryManager.BATTERY_PLUGGED_WIRELESS -> "wireless"
             else -> "none"
         }
+        val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
+                status == BatteryManager.BATTERY_STATUS_FULL ||
+                plugged == BatteryManager.BATTERY_PLUGGED_USB ||
+                plugged == BatteryManager.BATTERY_PLUGGED_AC ||
+                plugged == BatteryManager.BATTERY_PLUGGED_WIRELESS
 
         return BatteryInfo(
             level = level.coerceIn(0, 100),

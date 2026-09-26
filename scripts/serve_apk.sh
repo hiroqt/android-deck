@@ -13,5 +13,13 @@ if [[ ! -f "$APK" || "${1:-}" == "--build" ]]; then
     "$ROOT_DIR/android/gradlew" -p "$ROOT_DIR/android" assembleDebug
 fi
 
+# Terminate any stale server holding port 8080
+PID=$(lsof -ti :8080 2>/dev/null || true)
+if [[ -n "$PID" ]]; then
+    echo "==> Stopping previous server running on port 8080 (PID $PID)..."
+    kill -9 $PID 2>/dev/null || true
+    sleep 0.5
+fi
+
 chmod +x "$SCRIPT_DIR/serve_portal.py"
 exec python3 "$SCRIPT_DIR/serve_portal.py"

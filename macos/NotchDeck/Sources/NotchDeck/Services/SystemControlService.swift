@@ -215,6 +215,14 @@ public final class SystemControlService {
         try? proc.run()
     }
 
+    public func setWifi(state: String) {
+        let newState = state.lowercased() == "on" ? "on" : "off"
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/usr/sbin/networksetup")
+        proc.arguments = ["-setairportpower", "en0", newState]
+        try? proc.run()
+    }
+
     // MARK: - Bluetooth Control
     public func isBluetoothOn() -> Bool {
         let proc = Process()
@@ -231,6 +239,10 @@ public final class SystemControlService {
     }
 
     public func toggleBluetooth() {
+        setBluetooth(state: "switch")
+    }
+
+    public func setBluetooth(state: String) {
         // Toggle via blueutil if available, otherwise launch Bluetooth settings
         let proc = Process()
         proc.executableURL = URL(fileURLWithPath: "/usr/bin/which")
@@ -246,7 +258,15 @@ public final class SystemControlService {
             if !path.isEmpty {
                 let blueutilProc = Process()
                 blueutilProc.executableURL = URL(fileURLWithPath: path)
-                blueutilProc.arguments = ["-p", "switch"]
+                let arg: String
+                if state.lowercased() == "on" {
+                    arg = "1"
+                } else if state.lowercased() == "off" {
+                    arg = "0"
+                } else {
+                    arg = "switch"
+                }
+                blueutilProc.arguments = ["-p", arg]
                 try? blueutilProc.run()
                 return
             }
