@@ -25,7 +25,16 @@ data class RawEnvelope(
 data class HelloPayload(
     val clientName: String = "Android Deck",
     val platform: String = "Android",
-    val appVersion: String = "1.0.0"
+    val appVersion: String = "1.0.0",
+    val batteryLevel: Int? = null,
+    val isCharging: Boolean? = null
+)
+
+@Serializable
+data class DeviceBatteryPayload(
+    val level: Int,
+    val isCharging: Boolean,
+    val plugged: String? = null
 )
 
 @Serializable

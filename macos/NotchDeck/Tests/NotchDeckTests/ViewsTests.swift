@@ -465,7 +465,7 @@ final class ViewsTests: XCTestCase {
 
         // Write a connected status.json
         let statusFile = tempDir.appendingPathComponent("status.json")
-        let status = DeviceStatusInfo(connected: true, clientName: "Pixel 8 Pro", clientCount: 1)
+        let status = DeviceStatusInfo(connected: true, clientName: "Pixel 8 Pro", clientCount: 1, batteryLevel: 88, isCharging: true)
         let data = try? JSONEncoder().encode(status)
         try? data?.write(to: statusFile)
 
@@ -475,6 +475,29 @@ final class ViewsTests: XCTestCase {
         XCTAssertTrue(service.isDeviceConnected)
         XCTAssertEqual(service.connectedDeviceName, "Pixel 8 Pro")
         XCTAssertEqual(service.clientCount, 1)
+        XCTAssertEqual(service.batteryLevel, 88)
+        XCTAssertTrue(service.isCharging)
+    }
+
+    func testCollapsedNotchViewBatteryRendering() throws {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let statusFile = tempDir.appendingPathComponent("status.json")
+        let status = DeviceStatusInfo(connected: true, clientName: "Pixel 8 Pro", clientCount: 1, batteryLevel: 72, isCharging: false)
+        let data = try JSONEncoder().encode(status)
+        try data.write(to: statusFile, options: .atomic)
+
+        let service = PhoneDeckService(baseDirectory: tempDir)
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.1))
+
+        let view = CollapsedNotchView(phoneDeckService: service, onExpand: {})
+        let hosting = NSHostingView(rootView: view)
+        XCTAssertNotNil(hosting)
+        XCTAssertTrue(service.isDeviceConnected)
+        XCTAssertEqual(service.batteryLevel, 72)
+        XCTAssertFalse(service.isCharging)
     }
 
     func testDeckSlotCardViewConfiguredAndEmptyState() {
@@ -557,6 +580,352 @@ final class ViewsTests: XCTestCase {
         let hosting = NSHostingView(rootView: appsView)
         hosting.layout()
         XCTAssertNotNil(hosting)
+    }
+
+    func testSideNotchShapePathGeneration() {
+        let rightShape = SideNotchShape(edge: .right, cornerRadius: 18, curlRadius: 16)
+        let rightPath = rightShape.path(in: CGRect(x: 0, y: 0, width: 48, height: 180))
+        XCTAssertFalse(rightPath.isEmpty)
+
+        let leftShape = SideNotchShape(edge: .left, cornerRadius: 18, curlRadius: 16)
+        let leftPath = leftShape.path(in: CGRect(x: 0, y: 0, width: 48, height: 180))
+        XCTAssertFalse(leftPath.isEmpty)
+
+        let topShape = SideNotchShape(edge: .top, cornerRadius: 18, curlRadius: 16)
+        let topPath = topShape.path(in: CGRect(x: 0, y: 0, width: 180, height: 32))
+        XCTAssertFalse(topPath.isEmpty)
+
+        // Test insetting
+        let inset = rightShape.inset(by: 2)
+        XCTAssertEqual(inset.insetAmount, 2)
+    }
+
+    func testCollapsedNotchViewVerticalMode() {
+        let view = CollapsedNotchView(edge: .right, onExpand: {})
+        XCTAssertNotNil(view.body)
+
+        let hosting = NSHostingView(rootView: view)
+        hosting.layout()
+        XCTAssertNotNil(hosting)
+    }
+
+    func testExpandedDeckViewVerticalMode() {
+        let view = ExpandedDeckView(
+            edge: .right,
+            onCollapse: {},
+            onOpenSettings: {},
+            onSelectSlotToEdit: { _ in }
+        )
+        XCTAssertNotNil(view.body)
+
+        let hosting = NSHostingView(rootView: view)
+        hosting.layout()
+        XCTAssertNotNil(hosting)
+    }
+
+    func testLiquidPullShapePathGeneration() {
+        // Resting top shape
+        let topResting = LiquidPullShape(edge: .top, stretchDistance: 0)
+        let topRestingPath = topResting.path(in: CGRect(x: 0, y: 0, width: 180, height: 32))
+        XCTAssertFalse(topRestingPath.isEmpty)
+
+        // Stretched top shape with lateral offset
+        let topStretched = LiquidPullShape(edge: .top, stretchDistance: 40, lateralOffset: 8)
+        let topStretchedPath = topStretched.path(in: CGRect(x: 0, y: 0, width: 180, height: 72))
+        XCTAssertFalse(topStretchedPath.isEmpty)
+
+        // Stretched right shape
+        let rightStretched = LiquidPullShape(edge: .right, stretchDistance: 35, lateralOffset: -4)
+        let rightStretchedPath = rightStretched.path(in: CGRect(x: 0, y: 0, width: 83, height: 116))
+        XCTAssertFalse(rightStretchedPath.isEmpty)
+
+        // Stretched left shape
+        let leftStretched = LiquidPullShape(edge: .left, stretchDistance: 35, lateralOffset: 4)
+        let leftStretchedPath = leftStretched.path(in: CGRect(x: 0, y: 0, width: 83, height: 116))
+        XCTAssertFalse(leftStretchedPath.isEmpty)
+
+        // Detached droplet shape
+        let detached = LiquidPullShape(edge: .top, stretchDistance: 0, isDetached: true)
+        let detachedPath = detached.path(in: CGRect(x: 0, y: 0, width: 72, height: 40))
+        XCTAssertFalse(detachedPath.isEmpty)
+
+        // Insettable
+        let inset = topStretched.inset(by: 3)
+        XCTAssertEqual(inset.insetAmount, 3)
+    }
+
+    func testLiquidDropletContentView() {
+        let horizontalDroplet = LiquidDropletContentView(edge: .top, isDetached: false)
+        XCTAssertNotNil(horizontalDroplet.body)
+        let hHosting = NSHostingView(rootView: horizontalDroplet)
+        hHosting.layout()
+        XCTAssertNotNil(hHosting)
+
+        let verticalDroplet = LiquidDropletContentView(edge: .right, isDetached: false)
+        XCTAssertNotNil(verticalDroplet.body)
+        let vHosting = NSHostingView(rootView: verticalDroplet)
+        vHosting.layout()
+        XCTAssertNotNil(vHosting)
+
+        let floatingDroplet = LiquidDropletContentView(edge: .top, isDetached: true)
+        XCTAssertNotNil(floatingDroplet.body)
+        let fHosting = NSHostingView(rootView: floatingDroplet)
+        fHosting.layout()
+        XCTAssertNotNil(fHosting)
+    }
+
+    func testNotchDeckRootViewStretchedAndDetachedMode() {
+        var isExpanded = false
+        let expandedBinding = Binding(get: { isExpanded }, set: { isExpanded = $0 })
+
+        // Stretched top notch
+        let stretchedView = NotchDeckRootView(
+            isExpanded: expandedBinding,
+            edge: .top,
+            stretchDistance: 30.0,
+            lateralOffset: 5.0,
+            isDetached: false
+        )
+        XCTAssertNotNil(stretchedView.body)
+        let sHosting = NSHostingView(rootView: stretchedView)
+        sHosting.layout()
+        XCTAssertNotNil(sHosting)
+
+        // Detached floating droplet
+        let detachedView = NotchDeckRootView(
+            isExpanded: expandedBinding,
+            edge: .right,
+            stretchDistance: 0.0,
+            lateralOffset: 0.0,
+            isDetached: true
+        )
+        XCTAssertNotNil(detachedView.body)
+        let dHosting = NSHostingView(rootView: detachedView)
+        dHosting.layout()
+        XCTAssertNotNil(dHosting)
+    }
+
+    func testDeckPresetModelAndDefaults() throws {
+        let defaults = DeckPreset.defaultPresets()
+        XCTAssertEqual(defaults.count, 3)
+        XCTAssertEqual(defaults[0].name, "Development")
+        XCTAssertEqual(defaults[1].name, "Productivity")
+        XCTAssertEqual(defaults[2].name, "Media & Tools")
+
+        // Each preset must strictly contain exactly 6 slots
+        for preset in defaults {
+            XCTAssertEqual(preset.slots.count, 6)
+            for (idx, slot) in preset.slots.enumerated() {
+                XCTAssertEqual(slot.index, idx)
+                XCTAssertFalse(slot.label.isEmpty)
+                XCTAssertFalse(slot.bundleId.isEmpty)
+            }
+        }
+
+        // Test custom preset encoding and decoding
+        let customSlots = [
+            PhoneDeckSlot(id: "app-1", index: 0, label: "Figma", bundleId: "com.figma.Desktop"),
+            PhoneDeckSlot(id: "app-2", index: 1, label: "Slack", bundleId: "com.tinyspeck.slackmacgap"),
+            PhoneDeckSlot(id: "app-3", index: 2, label: "Notion", bundleId: "notion.id"),
+            PhoneDeckSlot(id: "app-4", index: 3, label: "Spotify", bundleId: "com.spotify.client"),
+            PhoneDeckSlot(id: "app-5", index: 4, label: "Linear", bundleId: "com.linear"),
+            PhoneDeckSlot(id: "app-6", index: 5, label: "Safari", bundleId: "com.apple.Safari")
+        ]
+        let customPreset = DeckPreset(name: "Design Rig", slots: customSlots)
+        let data = try JSONEncoder().encode(customPreset)
+        let decoded = try JSONDecoder().decode(DeckPreset.self, from: data)
+        XCTAssertEqual(decoded.id, customPreset.id)
+        XCTAssertEqual(decoded.name, "Design Rig")
+        XCTAssertEqual(decoded.slots.count, 6)
+        XCTAssertEqual(decoded.slots[0].label, "Figma")
+    }
+
+    func testPhoneDeckServicePresetsLifecycle() {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let service = PhoneDeckService(baseDirectory: tempDir)
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05))
+
+        // Initialized with 3 default presets
+        XCTAssertEqual(service.presets.count, 3)
+        XCTAssertNotNil(service.activePresetId)
+        XCTAssertEqual(service.activePresetId, service.presets.first?.id)
+
+        let presetsFile = tempDir.appendingPathComponent("presets.json")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: presetsFile.path))
+
+        // Save current deck as a new preset
+        service.saveCurrentAsPreset(name: "Custom Workflow")
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05))
+
+        XCTAssertEqual(service.presets.count, 4)
+        guard let savedPreset = service.presets.first(where: { $0.name == "Custom Workflow" }) else {
+            XCTFail("Custom Workflow preset not found")
+            return
+        }
+        XCTAssertEqual(service.activePresetId, savedPreset.id)
+        XCTAssertEqual(savedPreset.slots.count, 6)
+
+        // Rename preset
+        service.renamePreset(id: savedPreset.id, newName: "Pro Workflow")
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05))
+        XCTAssertEqual(service.presets.first(where: { $0.id == savedPreset.id })?.name, "Pro Workflow")
+
+        // Apply a different preset (e.g. Productivity)
+        let prodPreset = service.presets[1]
+        service.applyPreset(id: prodPreset.id)
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05))
+
+        XCTAssertEqual(service.activePresetId, prodPreset.id)
+        XCTAssertEqual(service.slots[0].label, prodPreset.slots[0].label)
+        XCTAssertEqual(service.slots[0].bundleId, prodPreset.slots[0].bundleId)
+
+        // Delete the custom preset
+        service.deletePreset(id: savedPreset.id)
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05))
+        XCTAssertEqual(service.presets.count, 3)
+        XCTAssertNil(service.presets.first(where: { $0.id == savedPreset.id }))
+    }
+
+    func testGlassAppearanceSettingsTintOpacityAndBacklight() throws {
+        // Defaults
+        let defaultSettings = GlassAppearanceSettings()
+        XCTAssertEqual(defaultSettings.glassTintOpacity, 0.72)
+        XCTAssertTrue(defaultSettings.ambientBacklightEnabled)
+        XCTAssertEqual(defaultSettings.specularIntensity, 0.45)
+
+        // Custom init
+        let customSettings = GlassAppearanceSettings(
+            blurMaterial: "ultraThin",
+            specularIntensity: 0.85,
+            ambientBacklightEnabled: false,
+            cornerRadius: 22.0,
+            glassTintOpacity: 0.45
+        )
+        XCTAssertEqual(customSettings.glassTintOpacity, 0.45)
+        XCTAssertFalse(customSettings.ambientBacklightEnabled)
+
+        // JSON decode fallback when glassTintOpacity is omitted (backward compatibility)
+        let jsonWithoutTint = """
+        {
+            "blurMaterial": "hud",
+            "specularIntensity": 0.5,
+            "ambientBacklightEnabled": true,
+            "cornerRadius": 20.0
+        }
+        """.data(using: .utf8)!
+        let decoded = try JSONDecoder().decode(GlassAppearanceSettings.self, from: jsonWithoutTint)
+        XCTAssertEqual(decoded.glassTintOpacity, 0.72)
+
+        // LiquidGlassBackground with custom settings
+        let bg = LiquidGlassBackground(settings: customSettings, edge: .top, isExpanded: true)
+        XCTAssertEqual(bg.glassTintOpacity, 0.45)
+        XCTAssertFalse(bg.ambientBacklightEnabled)
+        XCTAssertEqual(bg.specularIntensity, 0.85)
+        XCTAssertNotNil(bg.body)
+
+        let hosting = NSHostingView(rootView: bg)
+        hosting.layout()
+        XCTAssertNotNil(hosting)
+    }
+
+    @MainActor
+    func testSideNotchBubbleViewAndChatBubbleShape() {
+        let rightShape = ChatBubbleShape(edge: .right, cornerRadius: 10, tailWidth: 5, tailHeight: 8)
+        let rightPath = rightShape.path(in: CGRect(x: 0, y: 0, width: 160, height: 32))
+        XCTAssertFalse(rightPath.isEmpty)
+
+        let leftShape = ChatBubbleShape(edge: .left, cornerRadius: 10, tailWidth: 5, tailHeight: 8)
+        let leftPath = leftShape.path(in: CGRect(x: 0, y: 0, width: 160, height: 32))
+        XCTAssertFalse(leftPath.isEmpty)
+
+        let topShape = ChatBubbleShape(edge: .top, cornerRadius: 10)
+        let topPath = topShape.path(in: CGRect(x: 0, y: 0, width: 160, height: 32))
+        XCTAssertFalse(topPath.isEmpty)
+
+        let rightBubbleView = SideNotchBubbleView(edge: .right)
+        XCTAssertNotNil(rightBubbleView.body)
+
+        let leftBubbleView = SideNotchBubbleView(edge: .left)
+        XCTAssertNotNil(leftBubbleView.body)
+
+        let hosting = NSHostingView(rootView: rightBubbleView)
+        hosting.layout()
+        XCTAssertNotNil(hosting)
+
+        // Test controller hover integration
+        let controller = NotchWindowController.shared
+        controller.start()
+        controller.moveTo(edge: .right, positionRatio: 0.5, animated: false)
+        controller.setSideNotchHovered(true)
+        controller.setSideNotchHovered(false)
+        controller.moveTo(edge: .top, positionRatio: 0.5, animated: false)
+    }
+
+    func testAppIconManagerResolutionAndCaching() {
+        let manager = AppIconManager.shared
+
+        // Test finding system Terminal by bundle ID
+        let terminalURL = manager.findApplicationURL(bundleId: "com.apple.Terminal", name: "Terminal")
+        XCTAssertNotNil(terminalURL)
+
+        // Test finding by name fallback
+        let safariURL = manager.findApplicationURL(bundleId: "invalid.bundle.id", name: "Safari")
+        XCTAssertNotNil(safariURL)
+
+        // Test clean icon extraction
+        if let termURL = terminalURL {
+            let cleanIcon = manager.extractCleanIcon(from: termURL.path, pointSize: 32.0)
+            XCTAssertNotNil(cleanIcon)
+            XCTAssertEqual(cleanIcon.size.width, 32.0)
+            XCTAssertEqual(cleanIcon.size.height, 32.0)
+        }
+
+        // Test cached access
+        let icon1 = manager.icon(for: "com.apple.Terminal", name: "Terminal")
+        XCTAssertNotNil(icon1)
+        let icon2 = manager.icon(for: "com.apple.Terminal", name: "Terminal")
+        XCTAssertNotNil(icon2)
+        XCTAssertEqual(icon1, icon2)
+    }
+
+    func testQRCodeGeneratorValidOutput() {
+        let testURL = "http://192.168.1.3:8080/?auto=1"
+        let qrImage = QRCodeGenerator.generate(from: testURL, size: 150)
+        XCTAssertNotNil(qrImage)
+        XCTAssertEqual(qrImage?.size.width, 150)
+        XCTAssertEqual(qrImage?.size.height, 150)
+
+        let smallQR = QRCodeGenerator.generate(from: "http://192.168.1.3:8080/MacDeck.apk", size: 80, correctionLevel: "Q")
+        XCTAssertNotNil(smallQR)
+        XCTAssertEqual(smallQR?.size.width, 80)
+    }
+
+    func testNetworkHelperLocalIPAddress() {
+        let ip = NetworkHelper.localIPAddress
+        XCTAssertFalse(ip.isEmpty)
+        XCTAssertFalse(ip.contains("127.0.0.1"))
+    }
+
+    func testQRCodeCardViewAndTargetModes() {
+        XCTAssertEqual(DownloadTargetMode.allCases.count, 3)
+        XCTAssertEqual(DownloadTargetMode.autoPortal.title, "Auto-Download (Recommended)")
+        XCTAssertEqual(DownloadTargetMode.directApk.title, "Direct APK")
+        XCTAssertEqual(DownloadTargetMode.portalPage.title, "Portal Page")
+
+        let cardView = QRCodeCardView()
+        XCTAssertNotNil(cardView.body)
+
+        let hosting = NSHostingView(rootView: cardView)
+        hosting.layout()
+        XCTAssertNotNil(hosting)
+
+        let guide = StepMiniGuide(num: "1", title: "Scan", desc: "Camera")
+        let guideHosting = NSHostingView(rootView: guide)
+        guideHosting.layout()
+        XCTAssertNotNil(guideHosting)
     }
 }
 

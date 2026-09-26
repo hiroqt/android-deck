@@ -25,13 +25,25 @@ public struct DeviceStatusInfo: Codable, Equatable {
     public var clientCount: Int
     public var port: UInt16
     public var timestamp: Double
+    public var batteryLevel: Int?
+    public var isCharging: Bool?
 
-    public init(connected: Bool = false, clientName: String? = nil, clientCount: Int = 0, port: UInt16 = 8765, timestamp: Double = Date().timeIntervalSince1970) {
+    public init(
+        connected: Bool = false,
+        clientName: String? = nil,
+        clientCount: Int = 0,
+        port: UInt16 = 8765,
+        timestamp: Double = Date().timeIntervalSince1970,
+        batteryLevel: Int? = nil,
+        isCharging: Bool? = nil
+    ) {
         self.connected = connected
         self.clientName = clientName
         self.clientCount = clientCount
         self.port = port
         self.timestamp = timestamp
+        self.batteryLevel = batteryLevel
+        self.isCharging = isCharging
     }
 }
 
@@ -40,11 +52,17 @@ public final class PhoneDeckService: ObservableObject {
 
     private let profileURL: URL
     private let statusURL: URL
+    private let presetsURL: URL
 
     @Published public private(set) var slots: [PhoneDeckSlot] = []
+    @Published public private(set) var presets: [DeckPreset] = []
+    @Published public private(set) var activePresetId: UUID? = nil
     @Published public private(set) var isDeviceConnected: Bool = false
     @Published public private(set) var connectedDeviceName: String? = nil
     @Published public private(set) var clientCount: Int = 0
+    @Published public private(set) var batteryLevel: Int? = nil
+    @Published public private(set) var isCharging: Bool = false
+    @Published public private(set) var isPortalOnline: Bool = false
 
     private var profileWatcher: DispatchSourceFileSystemObject?
     private var statusWatcher: DispatchSourceFileSystemObject?
@@ -61,8 +79,10 @@ public final class PhoneDeckService: ObservableObject {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         self.profileURL = dir.appendingPathComponent("profile.json")
         self.statusURL = dir.appendingPathComponent("status.json")
+        self.presetsURL = dir.appendingPathComponent("presets.json")
 
         loadProfile()
+        loadPresets()
         loadStatus()
         startWatchers()
     }
@@ -118,14 +138,23 @@ public final class PhoneDeckService: ObservableObject {
                 self.isDeviceConnected = false
                 self.connectedDeviceName = nil
                 self.clientCount = 0
+                self.batteryLevel = nil
+                self.isCharging = false
             }
             return
         }
 
-        DispatchQueue.main.async {
+        let apply = {
             self.isDeviceConnected = status.connected && status.clientCount > 0
             self.connectedDeviceName = status.clientName
             self.clientCount = status.clientCount
+            self.batteryLevel = self.isDeviceConnected ? status.batteryLevel : nil
+            self.isCharging = self.isDeviceConnected ? (status.isCharging ?? false) : false
+        }
+        if Thread.isMainThread {
+            apply()
+        } else {
+            DispatchQueue.main.async(execute: apply)
         }
     }
 
@@ -192,6 +221,79 @@ public final class PhoneDeckService: ObservableObject {
         saveProfile(defaults)
     }
 
+    // MARK: - Presets Management
+
+    public func loadPresets() {
+        if let data = try? Data(contentsOf: presetsURL),
+           let saved = try? JSONDecoder().decode([DeckPreset].self, from: data),
+           !saved.isEmpty {
+            DispatchQueue.main.async {
+                self.presets = saved
+                if self.activePresetId == nil {
+                    self.activePresetId = saved.first?.id
+                }
+            }
+        } else {
+            let defaults = DeckPreset.defaultPresets()
+            savePresetsToDisk(defaults)
+            DispatchQueue.main.async {
+                self.presets = defaults
+                self.activePresetId = defaults.first?.id
+            }
+        }
+    }
+
+    public func savePresetsToDisk(_ list: [DeckPreset]) {
+        if let data = try? JSONEncoder().encode(list) {
+            try? data.write(to: presetsURL, options: .atomic)
+        }
+        DispatchQueue.main.async {
+            self.presets = list
+        }
+    }
+
+    public func applyPreset(id: UUID) {
+        guard let target = presets.first(where: { $0.id == id }) else { return }
+        self.activePresetId = id
+        saveProfile(target.slots)
+    }
+
+    public func saveCurrentAsPreset(name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let presetName = trimmed.isEmpty ? "Preset \(presets.count + 1)" : trimmed
+        var currentSlots = self.slots
+        while currentSlots.count < 6 {
+            let idx = currentSlots.count
+            currentSlots.append(PhoneDeckSlot(id: "app-\(idx + 1)", index: idx, label: "", bundleId: ""))
+        }
+        let newPreset = DeckPreset(name: presetName, slots: Array(currentSlots.prefix(6)))
+        var updated = presets
+        updated.append(newPreset)
+        self.activePresetId = newPreset.id
+        savePresetsToDisk(updated)
+    }
+
+    public func deletePreset(id: UUID) {
+        var updated = presets.filter { $0.id != id }
+        if updated.isEmpty {
+            updated = DeckPreset.defaultPresets()
+        }
+        if activePresetId == id {
+            activePresetId = updated.first?.id
+        }
+        savePresetsToDisk(updated)
+    }
+
+    public func renamePreset(id: UUID, newName: String) {
+        let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        var updated = presets
+        if let idx = updated.firstIndex(where: { $0.id == id }) {
+            updated[idx].name = trimmed
+            savePresetsToDisk(updated)
+        }
+    }
+
     private var lastProfileModDate: Date?
 
     private func checkProfileModification() {
@@ -220,6 +322,50 @@ public final class PhoneDeckService: ObservableObject {
             self.pollTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
                 self?.loadStatus()
                 self?.checkProfileModification()
+                self?.checkPortalStatus()
+            }
+        }
+        checkPortalStatus()
+    }
+
+    public func checkPortalStatus(completion: ((Bool) -> Void)? = nil) {
+        guard let url = URL(string: "http://127.0.0.1:8080/api/status") else {
+            completion?(false)
+            return
+        }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 1.0
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
+            let isOnline = (response as? HTTPURLResponse)?.statusCode == 200
+            DispatchQueue.main.async {
+                self?.isPortalOnline = isOnline
+                completion?(isOnline)
+            }
+        }.resume()
+    }
+
+    public func startPortalServerIfNeeded() {
+        checkPortalStatus { [weak self] alreadyOnline in
+            if alreadyOnline { return }
+
+            let candidates = [
+                URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("scripts/serve_portal.py").path,
+                URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("../scripts/serve_portal.py").path,
+                URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("../../scripts/serve_portal.py").path,
+                "/Users/arnel/android-deck/scripts/serve_portal.py"
+            ]
+
+            guard let script = candidates.first(where: { FileManager.default.fileExists(atPath: $0) }) else {
+                return
+            }
+
+            let task = Process()
+            task.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
+            task.arguments = [script]
+            try? task.run()
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                self?.checkPortalStatus()
             }
         }
     }

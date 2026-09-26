@@ -144,5 +144,45 @@ class ProtocolSerializationTest {
         assertEquals("profile.refresh", decoded.type)
         assertEquals("ref-123", decoded.requestId)
     }
+
+    @Test
+    fun testHelloWithBatterySerialization() {
+        val hello = Envelope(
+            type = "hello",
+            requestId = "hello-batt-1",
+            payload = HelloPayload(
+                clientName = "Pixel 8 Pro",
+                platform = "Android",
+                appVersion = "1.0.0",
+                batteryLevel = 92,
+                isCharging = true
+            )
+        )
+        val jsonStr = json.encodeToString(hello)
+        val decoded = json.decodeFromString<Envelope<HelloPayload>>(jsonStr)
+
+        assertEquals(92, decoded.payload.batteryLevel)
+        assertEquals(true, decoded.payload.isCharging)
+    }
+
+    @Test
+    fun testDeviceBatterySerialization() {
+        val batteryEnv = Envelope(
+            type = "device.battery",
+            requestId = "batt-123",
+            payload = DeviceBatteryPayload(
+                level = 85,
+                isCharging = true,
+                plugged = "usb"
+            )
+        )
+        val jsonStr = json.encodeToString(batteryEnv)
+        val decoded = json.decodeFromString<Envelope<DeviceBatteryPayload>>(jsonStr)
+
+        assertEquals("device.battery", decoded.type)
+        assertEquals(85, decoded.payload.level)
+        assertEquals(true, decoded.payload.isCharging)
+        assertEquals("usb", decoded.payload.plugged)
+    }
 }
 

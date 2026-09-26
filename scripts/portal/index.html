@@ -236,6 +236,12 @@
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
         }
 
+        @media (max-width: 640px) {
+            .qr-card {
+                display: none;
+            }
+        }
+
         .instructions-card {
             background: rgba(18, 21, 32, 0.65);
             border: 1px solid var(--surface-border);
@@ -390,6 +396,25 @@
                 setTimeout(() => { btn.innerText = "Copy IP"; }, 2000);
             });
         }
+
+        // Automatic APK download handler when scanned via QR code (?auto=1 or ?download=1)
+        (function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const shouldAuto = urlParams.get('auto') === '1' || urlParams.get('download') === '1' || urlParams.has('auto');
+            if (shouldAuto) {
+                const btn = document.getElementById("download-btn");
+                const sub = btn ? btn.querySelector(".btn-sub") : null;
+                if (sub) {
+                    sub.innerHTML = "⏳ Triggering automatic APK download...";
+                }
+                setTimeout(function() {
+                    if (sub) {
+                        sub.innerHTML = "✅ Download started! Tap above if not prompted.";
+                    }
+                    window.location.href = "/MacDeck.apk";
+                }, 700);
+            }
+        })();
 
         // Minimal, self-contained QR Code Generator for Canvas
         (function() {

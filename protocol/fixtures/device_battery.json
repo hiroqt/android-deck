@@ -1,0 +1,11 @@
+{
+  "protocolVersion": 1,
+  "type": "device.battery",
+  "requestId": "d82046e7-1335-46aa-bd06-e7813a30c502",
+  "timestamp": 1780000000000,
+  "payload": {
+    "level": 85,
+    "isCharging": true,
+    "plugged": "usb"
+  }
+}

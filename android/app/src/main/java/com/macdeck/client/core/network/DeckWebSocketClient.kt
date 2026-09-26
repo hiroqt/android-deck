@@ -1,6 +1,7 @@
 package com.macdeck.client.core.network
 
 import android.util.Log
+import com.macdeck.client.core.battery.BatteryInfo
 import com.macdeck.client.core.model.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -31,6 +32,8 @@ class DeckWebSocketClient(
     companion object {
         private const val TAG = "MacDeckWS"
     }
+
+    var batteryProvider: (() -> BatteryInfo?)? = null
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -71,6 +74,24 @@ class DeckWebSocketClient(
         initiateConnection()
     }
 
+    fun sendBatteryUpdate(info: BatteryInfo) {
+        if (_connectionState.value != ConnectionState.CONNECTED) return
+        val envelope = Envelope(
+            type = "device.battery",
+            requestId = UUID.randomUUID().toString(),
+            payload = DeviceBatteryPayload(
+                level = info.level,
+                isCharging = info.isCharging,
+                plugged = info.plugged
+            )
+        )
+        try {
+            webSocket?.send(json.encodeToString(envelope))
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to send battery update", e)
+        }
+    }
+
     private fun initiateConnection() {
         if (currentUrl.isEmpty()) return
         _connectionState.value = if (reconnectAttempt > 0) ConnectionState.RECONNECTING else ConnectionState.CONNECTING
@@ -89,13 +110,16 @@ class DeckWebSocketClient(
                 reconnectAttempt = 0
 
                 // Send hello handshake
+                val currentBattery = batteryProvider?.invoke()
                 val helloEnvelope = Envelope(
                     type = "hello",
                     requestId = UUID.randomUUID().toString(),
                     payload = HelloPayload(
                         clientName = android.os.Build.MODEL ?: "Android Device",
                         platform = "Android",
-                        appVersion = "1.0.0"
+                        appVersion = "1.0.0",
+                        batteryLevel = currentBattery?.level,
+                        isCharging = currentBattery?.isCharging
                     )
                 )
                 webSocket.send(json.encodeToString(helloEnvelope))

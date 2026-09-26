@@ -2,6 +2,7 @@ import SwiftUI
 
 public struct ExpandedDeckView: View {
     @ObservedObject var phoneDeckService = PhoneDeckService.shared
+    public let edge: NotchEdge
     public let onCollapse: () -> Void
     public let onOpenSettings: () -> Void
     public let onSelectSlotToEdit: (PhoneDeckSlot) -> Void
@@ -9,12 +10,14 @@ public struct ExpandedDeckView: View {
 
     public init(
         phoneDeckService: PhoneDeckService = .shared,
+        edge: NotchEdge = .top,
         initialTab: Int = 0,
         onCollapse: @escaping () -> Void,
         onOpenSettings: @escaping () -> Void,
         onSelectSlotToEdit: @escaping (PhoneDeckSlot) -> Void
     ) {
         self.phoneDeckService = phoneDeckService
+        self.edge = edge
         self._selectedTab = State(initialValue: initialTab)
         self.onCollapse = onCollapse
         self.onOpenSettings = onOpenSettings
@@ -24,11 +27,13 @@ public struct ExpandedDeckView: View {
 
     public init(
         configManager: ConfigManager,
+        edge: NotchEdge = .top,
         onCollapse: @escaping () -> Void,
         onOpenSettings: @escaping () -> Void,
         onEditSlot: @escaping (DeckSlot) -> Void
     ) {
         self.phoneDeckService = .shared
+        self.edge = edge
         self.onCollapse = onCollapse
         self.onOpenSettings = onOpenSettings
         self.onSelectSlotToEdit = { _ in }
@@ -38,11 +43,13 @@ public struct ExpandedDeckView: View {
     public init(
         configManager: ConfigManager,
         isEditing: Bool = false,
+        edge: NotchEdge = .top,
         onCollapse: @escaping () -> Void,
         onOpenSettings: @escaping () -> Void,
         onEditSlot: @escaping (DeckSlot) -> Void
     ) {
         self.phoneDeckService = .shared
+        self.edge = edge
         self.onCollapse = onCollapse
         self.onOpenSettings = onOpenSettings
         self.onSelectSlotToEdit = { _ in }
@@ -52,12 +59,86 @@ public struct ExpandedDeckView: View {
     @State public var selectedTab: Int = 0
 
     public var body: some View {
+        VStack(spacing: 0) {
+            // Header Bar
+            if edge.isVertical {
+                verticalHeader
+                Spacer().frame(height: 8)
+            } else {
+                horizontalHeader
+                Spacer().frame(height: 12)
+            }
+
+            // App Slots Grid
+            if edge.isVertical {
+                LazyVGrid(
+                    columns: [
+                        GridItem(.fixed(122), spacing: 10),
+                        GridItem(.fixed(122), spacing: 10)
+                    ],
+                    spacing: 10
+                ) {
+                    ForEach(displaySlots) { slot in
+                        DeckSlotCardView(
+                            slot: slot,
+                            cardWidth: 122,
+                            cardHeight: 70,
+                            onEdit: {
+                                onSelectSlotToEdit(slot)
+                            },
+                            onRemove: {
+                                withAnimation(.easeInOut(duration: 0.22)) {
+                                    phoneDeckService.clearSlot(index: slot.index)
+                                }
+                            }
+                        )
+                        .id("\(slot.id)-\(slot.bundleId)-\(slot.label)")
+                    }
+                }
+                .padding(.horizontal, 14)
+            } else {
+                LazyVGrid(
+                    columns: [
+                        GridItem(.fixed(132), spacing: 12),
+                        GridItem(.fixed(132), spacing: 12),
+                        GridItem(.fixed(132), spacing: 12)
+                    ],
+                    spacing: 10
+                ) {
+                    ForEach(displaySlots) { slot in
+                        DeckSlotCardView(
+                            slot: slot,
+                            cardWidth: 132,
+                            cardHeight: 74,
+                            onEdit: {
+                                onSelectSlotToEdit(slot)
+                            },
+                            onRemove: {
+                                withAnimation(.easeInOut(duration: 0.22)) {
+                                    phoneDeckService.clearSlot(index: slot.index)
+                                }
+                            }
+                        )
+                        .id("\(slot.id)-\(slot.bundleId)-\(slot.label)")
+                    }
+                }
+                .padding(.horizontal, 24)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .frame(
+            width: edge.isVertical ? 280 : 480,
+            height: edge.isVertical ? 380 : 224
+        )
+    }
+
+    // MARK: - Dedicated Vertical Header
+    private var verticalHeader: some View {
         VStack(spacing: 8) {
-            // Header bar
-            HStack(spacing: 8) {
-                // Title
+            HStack {
                 HStack(spacing: 6) {
-                    Image(systemName: "sparkles")
+                    Image(systemName: "square.grid.2x2.fill")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundColor(.cyan)
 
@@ -68,101 +149,192 @@ public struct ExpandedDeckView: View {
 
                 Spacer()
 
-                // Connected Device Badge
-                HStack(spacing: 5) {
-                    Circle()
-                        .fill(phoneDeckService.isDeviceConnected ? Color.green : Color.orange)
-                        .frame(width: 6, height: 6)
-                        .shadow(color: phoneDeckService.isDeviceConnected ? Color.green.opacity(0.8) : Color.clear, radius: 3)
-
-                    Text(deviceStatusText)
-                        .font(.system(size: 10, weight: .semibold, design: .rounded))
-                        .foregroundColor(phoneDeckService.isDeviceConnected ? .white : Color.white.opacity(0.65))
-                }
-                .padding(.horizontal, 9)
-                .padding(.vertical, 4)
-                .background(
-                    Capsule()
-                        .fill(Color.white.opacity(0.08))
-                        .overlay(Capsule().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
-                )
-
-                Spacer()
-
-                // Action Controls
                 HStack(spacing: 10) {
-                    // Reset to defaults
+                    presetQuickMenu
+
                     Button(action: {
                         withAnimation { phoneDeckService.resetDefaults() }
                     }) {
                         Image(systemName: "arrow.counterclockwise")
-                            .font(.system(size: 12))
+                            .font(.system(size: 11))
                             .foregroundColor(Color.white.opacity(0.6))
                     }
                     .buttonStyle(.plain)
                     .help("Reset slots to defaults")
 
-                    // Open Preferences
                     Button(action: onOpenSettings) {
                         Image(systemName: "gearshape")
-                            .font(.system(size: 13))
+                            .font(.system(size: 12))
                             .foregroundColor(Color.white.opacity(0.7))
                     }
                     .buttonStyle(.plain)
                     .help("Preferences")
 
-                    // Collapse button
                     Button(action: onCollapse) {
-                        Image(systemName: "chevron.up")
-                            .font(.system(size: 12, weight: .bold))
+                        Image(systemName: collapseChevronIcon)
+                            .font(.system(size: 11, weight: .bold))
                             .foregroundColor(Color.white.opacity(0.7))
                     }
                     .buttonStyle(.plain)
                     .help("Collapse")
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 10)
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
 
-            // Content: 6 Apps Grid for Phone Stream Deck
-            LazyVGrid(
-                columns: [
-                    GridItem(.fixed(132), spacing: 12),
-                    GridItem(.fixed(132), spacing: 12),
-                    GridItem(.fixed(132), spacing: 12)
-                ],
-                spacing: 10
-            ) {
-                ForEach(displaySlots) { slot in
-                    DeckSlotCardView(
-                        slot: slot,
-                        onEdit: {
-                            onSelectSlotToEdit(slot)
-                        },
-                        onRemove: {
-                            withAnimation(.spring(response: 0.25, dampingFraction: 0.72)) {
-                                phoneDeckService.clearSlot(index: slot.index)
-                            }
-                        }
-                    )
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 2)
-
-            Spacer(minLength: 0)
+            // Device Status Badge (Full Width Centered)
+            deviceStatusBadge
+                .padding(.horizontal, 20)
         }
-        .frame(width: 480, height: 224)
     }
 
-    private var deviceStatusText: String {
+    // MARK: - Horizontal Top Header
+    private var horizontalHeader: some View {
+        HStack(spacing: 10) {
+            // Title with Deck Icon
+            HStack(spacing: 6) {
+                Image(systemName: "square.grid.2x2.fill")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.cyan)
+
+                Text("NOTCH DECK")
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundColor(Color.white.opacity(0.85))
+            }
+
+            Spacer()
+
+            // Connected Device Badge (Icon + Text, NO EMOJIS)
+            deviceStatusBadge
+
+            Spacer()
+
+            // Action Controls
+            HStack(spacing: 10) {
+                presetQuickMenu
+
+                Button(action: {
+                    withAnimation { phoneDeckService.resetDefaults() }
+                }) {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.system(size: 11))
+                        .foregroundColor(Color.white.opacity(0.6))
+                }
+                .buttonStyle(.plain)
+                .help("Reset slots to defaults")
+
+                Button(action: onOpenSettings) {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 12))
+                        .foregroundColor(Color.white.opacity(0.7))
+                }
+                .buttonStyle(.plain)
+                .help("Preferences")
+
+                Button(action: onCollapse) {
+                    Image(systemName: collapseChevronIcon)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(Color.white.opacity(0.7))
+                }
+                .buttonStyle(.plain)
+                .help("Collapse")
+            }
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 16)
+    }
+
+    private var presetQuickMenu: some View {
+        Menu {
+            Section("Deck Presets") {
+                ForEach(phoneDeckService.presets) { preset in
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.22)) {
+                            phoneDeckService.applyPreset(id: preset.id)
+                        }
+                    }) {
+                        if phoneDeckService.activePresetId == preset.id {
+                            Label(preset.name, systemImage: "checkmark")
+                        } else {
+                            Text(preset.name)
+                        }
+                    }
+                }
+            }
+        } label: {
+            Image(systemName: "slider.horizontal.2.square")
+                .font(.system(size: 11.5))
+                .foregroundColor(Color.white.opacity(0.7))
+        }
+        .menuStyle(.borderlessButton)
+        .help("Switch Deck Preset")
+    }
+
+    // MARK: - Device Status Badge (Icon + Typography, Zero Emojis)
+    private var deviceStatusBadge: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(phoneDeckService.isDeviceConnected ? Color.green : Color.orange)
+                .frame(width: 6, height: 6)
+                .shadow(
+                    color: (phoneDeckService.isDeviceConnected ? Color.green : Color.orange).opacity(0.8),
+                    radius: 3
+                )
+
+            // Phone Vector Icon (No Emoji)
+            Image(systemName: phoneDeckService.isDeviceConnected ? "iphone.gen3" : "iphone.slash")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(phoneDeckService.isDeviceConnected ? Color.white.opacity(0.9) : Color.white.opacity(0.55))
+
+            // Status Text
+            Text(connectedDeviceNameText)
+                .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                .foregroundColor(phoneDeckService.isDeviceConnected ? .white : Color.white.opacity(0.7))
+                .lineLimit(1)
+
+            // Battery Level if available
+            if phoneDeckService.isDeviceConnected, let battery = phoneDeckService.batteryLevel {
+                HStack(spacing: 2) {
+                    if phoneDeckService.isCharging {
+                        Image(systemName: "bolt.fill")
+                            .font(.system(size: 7.5, weight: .bold))
+                            .foregroundColor(.green)
+                    }
+                    Text("\(battery)%")
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.9))
+                }
+                .padding(.leading, 2)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 4.5)
+        .background(
+            Capsule()
+                .fill(Color.white.opacity(0.08))
+                .overlay(
+                    Capsule()
+                        .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.75)
+                )
+        )
+    }
+
+    private var connectedDeviceNameText: String {
         if phoneDeckService.isDeviceConnected {
             if let name = phoneDeckService.connectedDeviceName, !name.isEmpty {
-                return "📱 \(name)"
+                return name
             }
-            return "📱 Phone Connected"
+            return "Phone Connected"
         } else {
-            return "⚪ Waiting for Phone..."
+            return "Waiting..."
+        }
+    }
+
+    private var collapseChevronIcon: String {
+        switch edge {
+        case .top: return "chevron.up"
+        case .right: return "chevron.right"
+        case .left: return "chevron.left"
         }
     }
 

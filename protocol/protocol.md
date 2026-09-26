@@ -38,7 +38,9 @@ Sent by client upon WebSocket connection establishment.
   "payload": {
     "clientName": "Pixel 7 Pro",
     "platform": "Android",
-    "appVersion": "1.0.0"
+    "appVersion": "1.0.0",
+    "batteryLevel": 85,
+    "isCharging": true
   }
 }
 ```
@@ -156,4 +158,27 @@ Sent by client (e.g. upon user tapping the Refresh button on phone) to explicitl
 }
 ```
 Response: `type: "profile.snapshot"` with matching `requestId` and refreshed profile payload. The macOS host also reloads `~/.macdeck/profile.json` from disk and emits `profile.changed` to all connected clients.
+
+---
+
+### 2.8 Device Battery Telemetry: `device.battery`
+Emitted by client periodically or on battery state changes to update the host on battery status.
+
+```json
+{
+  "protocolVersion": 1,
+  "type": "device.battery",
+  "requestId": "d82046e7-1335-46aa-bd06-e7813a30c502",
+  "timestamp": 1780000030000,
+  "payload": {
+    "level": 85,
+    "isCharging": true,
+    "plugged": "usb"
+  }
+}
+```
+Payload fields:
+- `level` (integer, 0–100): Current battery percentage.
+- `isCharging` (boolean): `true` if connected to power and charging.
+- `plugged` (string, optional): `"usb"`, `"ac"`, `"wireless"`, or `"none"`.
 

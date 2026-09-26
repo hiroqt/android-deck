@@ -47,4 +47,18 @@ final class ProtocolTests: XCTestCase {
         XCTAssertEqual(decoded.payload.controls.count, 1)
         XCTAssertEqual(decoded.payload.controls.first?.label, "VS Code")
     }
+
+    func testDeviceBatteryEncodingAndDecoding() throws {
+        let battery = Envelope(
+            type: "device.battery",
+            payload: DeviceBatteryPayload(level: 85, isCharging: true, plugged: "usb")
+        )
+        let data = try JSONEncoder().encode(battery)
+        let decoded = try JSONDecoder().decode(Envelope<DeviceBatteryPayload>.self, from: data)
+
+        XCTAssertEqual(decoded.type, "device.battery")
+        XCTAssertEqual(decoded.payload.level, 85)
+        XCTAssertTrue(decoded.payload.isCharging)
+        XCTAssertEqual(decoded.payload.plugged, "usb")
+    }
 }

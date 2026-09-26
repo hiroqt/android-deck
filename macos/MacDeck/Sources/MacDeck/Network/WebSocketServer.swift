@@ -80,27 +80,50 @@ public final class WebSocketServer: @unchecked Sendable {
         sendInitialProfile(to: session)
     }
 
+    private var currentClientName: String?
+    private var currentBatteryLevel: Int?
+    private var currentIsCharging: Bool = false
+
     private func removeSession(_ session: ClientSession) {
         lock.lock()
         sessions.removeValue(forKey: session.id)
         let count = sessions.count
         lock.unlock()
         print("🔌 [MacDeck] Client disconnected. Total clients: \(count)")
-        updateStatusFile(connected: count > 0, clientName: count > 0 ? "Android Device" : nil, clientCount: count)
+        updateStatusFile(connected: count > 0, clientName: count > 0 ? currentClientName : nil, clientCount: count)
     }
 
-    private func updateStatusFile(connected: Bool, clientName: String?, clientCount: Int) {
+    private func updateStatusFile(
+        connected: Bool,
+        clientName: String? = nil,
+        clientCount: Int? = nil,
+        batteryLevel: Int? = nil,
+        isCharging: Bool? = nil
+    ) {
+        if let clientName = clientName { self.currentClientName = clientName }
+        if let batteryLevel = batteryLevel { self.currentBatteryLevel = batteryLevel }
+        if let isCharging = isCharging { self.currentIsCharging = isCharging }
+        if !connected {
+            self.currentClientName = nil
+            self.currentBatteryLevel = nil
+            self.currentIsCharging = false
+        }
+
         let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".macdeck", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let statusURL = dir.appendingPathComponent("status.json")
         var statusObj: [String: Any] = [
             "connected": connected,
-            "clientCount": clientCount,
+            "clientCount": clientCount ?? sessions.count,
             "port": port,
             "timestamp": Date().timeIntervalSince1970
         ]
-        if let name = clientName {
+        if let name = self.currentClientName {
             statusObj["clientName"] = name
+        }
+        if let batt = self.currentBatteryLevel {
+            statusObj["batteryLevel"] = batt
+            statusObj["isCharging"] = self.currentIsCharging
         }
         if let data = try? JSONSerialization.data(withJSONObject: statusObj, options: [.prettyPrinted]) {
             try? data.write(to: statusURL, options: .atomic)
@@ -146,14 +169,19 @@ public final class WebSocketServer: @unchecked Sendable {
         switch raw.type {
         case "hello":
             var clientName = "Android Device"
-            if let helloEnv = try? JSONDecoder().decode(Envelope<HelloPayload>.self, from: data),
-               let name = helloEnv.payload.clientName, !name.isEmpty {
-                clientName = name
+            var batteryLevel: Int? = nil
+            var isCharging: Bool? = nil
+            if let helloEnv = try? JSONDecoder().decode(Envelope<HelloPayload>.self, from: data) {
+                if let name = helloEnv.payload.clientName, !name.isEmpty {
+                    clientName = name
+                }
+                batteryLevel = helloEnv.payload.batteryLevel
+                isCharging = helloEnv.payload.isCharging
             }
             lock.lock()
             let count = sessions.count
             lock.unlock()
-            updateStatusFile(connected: true, clientName: clientName, clientCount: count)
+            updateStatusFile(connected: true, clientName: clientName, clientCount: count, batteryLevel: batteryLevel, isCharging: isCharging)
 
             let ack = Envelope(
                 type: "hello.ack",
@@ -164,6 +192,15 @@ public final class WebSocketServer: @unchecked Sendable {
                 session.send(data: ackData)
             }
             sendInitialProfile(to: session)
+
+        case "device.battery":
+            if let battEnv = try? JSONDecoder().decode(Envelope<DeviceBatteryPayload>.self, from: data) {
+                print("🔋 [MacDeck] Battery update: \(battEnv.payload.level)% (charging: \(battEnv.payload.isCharging))")
+                lock.lock()
+                let count = sessions.count
+                lock.unlock()
+                updateStatusFile(connected: count > 0, clientCount: count, batteryLevel: battEnv.payload.level, isCharging: battEnv.payload.isCharging)
+            }
 
         case "profile.get", "profile.refresh":
             print("🔄 [MacDeck] Received \(raw.type) request [requestId: \(raw.requestId)]")

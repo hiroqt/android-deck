@@ -74,11 +74,27 @@ public struct HelloPayload: Codable {
     public let clientName: String?
     public let platform: String?
     public let appVersion: String?
+    public let batteryLevel: Int?
+    public let isCharging: Bool?
 
-    public init(clientName: String? = nil, platform: String? = nil, appVersion: String? = nil) {
+    public init(clientName: String? = nil, platform: String? = nil, appVersion: String? = nil, batteryLevel: Int? = nil, isCharging: Bool? = nil) {
         self.clientName = clientName
         self.platform = platform
         self.appVersion = appVersion
+        self.batteryLevel = batteryLevel
+        self.isCharging = isCharging
+    }
+}
+
+public struct DeviceBatteryPayload: Codable, Equatable {
+    public let level: Int
+    public let isCharging: Bool
+    public let plugged: String?
+
+    public init(level: Int, isCharging: Bool, plugged: String? = nil) {
+        self.level = level
+        self.isCharging = isCharging
+        self.plugged = plugged
     }
 }
 
