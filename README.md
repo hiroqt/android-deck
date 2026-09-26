@@ -23,18 +23,23 @@ A high-performance macOS desktop productivity suite providing both physical disp
 - **Instant Profile Synchronization**: Seamlessly watches and synchronizes with `~/.macdeck/profile.json` and `~/.macdeck/status.json`, reflecting updates across Mac and Android in real-time.
 - **Status Bar Companion**: Non-activating `NSPanel` floating at `.statusBar` level across all macOS spaces and full-screen apps, accompanied by a lightweight menu bar item.
 
-### NotchDeck Quickstart
+### NotchDeck Quickstart (macOS Standalone DMG)
 
-Launch NotchDeck in release mode with one command:
+1. Download **`NotchDeck.dmg`** from the web portal.
+2. Open the DMG and drag **`NotchDeck.app`** into your **Applications** folder.
+3. Launch **NotchDeck** from Applications. It runs automatically in the background and docks directly to your MacBook notch—no terminal commands required!
+4. Press **`⌘,`** or click **Preferences** from the status bar item to view the **Android App** QR code. Scan it with your phone's camera to install the companion APK.
+
+#### Developer Quickstart (Build from Source)
+
+Build and package the release DMG:
 ```bash
-./scripts/run_notchdeck.sh
+./scripts/build_dmg.sh
 ```
 
-Or build and run manually via Swift Package Manager:
+Or run directly via Swift:
 ```bash
-cd macos/NotchDeck
-swift build -c release
-./.build/release/NotchDeck
+./scripts/run_notchdeck.sh
 ```
 
 ### Shortcuts & Controls

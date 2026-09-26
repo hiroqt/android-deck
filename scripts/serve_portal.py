@@ -19,8 +19,41 @@ except ImportError:
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(SCRIPT_DIR)
-PORTAL_HTML_PATH = os.path.join(SCRIPT_DIR, "portal", "index.html")
-APK_PATH = os.path.join(ROOT_DIR, "android", "app", "build", "outputs", "apk", "debug", "app-debug.apk")
+
+def resolve_portal_html():
+    candidates = [
+        os.path.join(SCRIPT_DIR, "portal", "index.html"),
+        os.path.join(SCRIPT_DIR, "index.html"),
+        os.path.join(ROOT_DIR, "scripts", "portal", "index.html"),
+        os.path.join(ROOT_DIR, "portal", "index.html"),
+        os.path.join(ROOT_DIR, "Resources", "portal", "index.html"),
+        os.path.join(ROOT_DIR, "Resources", "index.html"),
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    return candidates[0]
+
+def resolve_apk_path():
+    env_path = os.environ.get("NOTCHDECK_APK_PATH")
+    if env_path and os.path.exists(env_path):
+        return env_path
+    candidates = [
+        os.path.join(SCRIPT_DIR, "NotchDeck.apk"),
+        os.path.join(SCRIPT_DIR, "app-debug.apk"),
+        os.path.join(ROOT_DIR, "Resources", "NotchDeck.apk"),
+        os.path.join(ROOT_DIR, "Resources", "app-debug.apk"),
+        os.path.join(ROOT_DIR, "android", "app", "build", "outputs", "apk", "debug", "app-debug.apk"),
+        os.path.join(ROOT_DIR, "android", "app", "build", "outputs", "apk", "release", "app-release.apk"),
+        os.path.expanduser("~/.notchdeck/NotchDeck.apk"),
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    return candidates[0]
+
+PORTAL_HTML_PATH = resolve_portal_html()
+APK_PATH = resolve_apk_path()
 PORT = 8080
 
 def detect_primary_ip():
@@ -252,11 +285,12 @@ class PortalRequestHandler(BaseHTTPRequestHandler):
             self.send_error(404, "File Not Found")
 
     def serve_portal(self):
-        if not os.path.exists(PORTAL_HTML_PATH):
+        html_path = resolve_portal_html()
+        if not os.path.exists(html_path):
             self.send_error(500, "Portal template missing")
             return
 
-        with open(PORTAL_HTML_PATH, "r", encoding="utf-8") as f:
+        with open(html_path, "r", encoding="utf-8") as f:
             template = f.read()
 
         effective_ip = self.get_effective_host_ip()
@@ -264,10 +298,11 @@ class PortalRequestHandler(BaseHTTPRequestHandler):
         apk_size = "16.5 MB"
         build_date = "Recently"
 
-        if os.path.exists(APK_PATH):
-            size_b = os.path.getsize(APK_PATH)
+        apk_path = resolve_apk_path()
+        if os.path.exists(apk_path):
+            size_b = os.path.getsize(apk_path)
             apk_size = format_size(size_b)
-            mtime = os.path.getmtime(APK_PATH)
+            mtime = os.path.getmtime(apk_path)
             build_date = datetime.datetime.fromtimestamp(mtime).strftime("%b %d, %H:%M")
 
         html = template.replace("{{MAC_IP}}", effective_ip)
@@ -285,12 +320,13 @@ class PortalRequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def serve_apk(self, is_head=False):
-        if not os.path.exists(APK_PATH):
+        apk_path = resolve_apk_path()
+        if not os.path.exists(apk_path):
             self.send_error(404, "APK not found. Please build the Android app first.")
             return
 
-        file_size = os.path.getsize(APK_PATH)
-        mtime = os.path.getmtime(APK_PATH)
+        file_size = os.path.getsize(apk_path)
+        mtime = os.path.getmtime(apk_path)
         etag = f'"{int(mtime)}-{file_size}"'
         last_modified = datetime.datetime.fromtimestamp(mtime, datetime.timezone.utc).strftime("%a, %d %b %Y %H:%M:%S GMT")
 
@@ -323,7 +359,7 @@ class PortalRequestHandler(BaseHTTPRequestHandler):
         if is_head:
             return
 
-        with open(APK_PATH, "rb") as f:
+        with open(apk_path, "rb") as f:
             f.seek(start)
             bytes_left = content_length
             chunk_size = 64 * 1024

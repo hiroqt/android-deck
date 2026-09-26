@@ -435,12 +435,15 @@ public final class PhoneDeckService: ObservableObject {
         checkPortalStatus { [weak self] alreadyOnline in
             if alreadyOnline { return }
 
-            let candidates = [
+            let candidates: [String] = [
+                Bundle.main.resourceURL?.appendingPathComponent("serve_portal.py").path,
+                Bundle.main.resourceURL?.appendingPathComponent("scripts/serve_portal.py").path,
+                Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/serve_portal.py").path,
                 URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("scripts/serve_portal.py").path,
                 URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("../scripts/serve_portal.py").path,
                 URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("../../scripts/serve_portal.py").path,
                 "/Users/arnel/android-deck/scripts/serve_portal.py"
-            ]
+            ].compactMap { $0 }
 
             guard let script = candidates.first(where: { FileManager.default.fileExists(atPath: $0) }) else {
                 return

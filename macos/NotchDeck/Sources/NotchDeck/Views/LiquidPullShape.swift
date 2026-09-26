@@ -29,11 +29,14 @@ public struct LiquidPullShape: Shape, InsettableShape {
         self.insetAmount = insetAmount
     }
 
-    public var animatableData: AnimatablePair<CGFloat, CGFloat> {
-        get { AnimatablePair(stretchDistance, lateralOffset) }
+    public var animatableData: AnimatablePair<AnimatablePair<CGFloat, CGFloat>, CGFloat> {
+        get {
+            AnimatablePair(AnimatablePair(stretchDistance, lateralOffset), cornerRadius)
+        }
         set {
-            stretchDistance = newValue.first
-            lateralOffset = newValue.second
+            stretchDistance = newValue.first.first
+            lateralOffset = newValue.first.second
+            cornerRadius = newValue.second
         }
     }
 
@@ -113,10 +116,11 @@ public struct LiquidPullShape: Shape, InsettableShape {
         let dX1 = max(4.0, rect.maxX - waistX)
         let dX2 = max(4.0, waistX - shoulderX)
 
+        let bezelX = rect.maxX + 2.0
         var path = Path()
 
         // Step 1: Start at bezel edge, upper anchor
-        path.move(to: CGPoint(x: rect.maxX, y: baseTop))
+        path.move(to: CGPoint(x: bezelX, y: baseTop))
 
         // Step 2: Bezel Flare into Upper Waist (Smooth concave flare)
         path.addCurve(
@@ -158,13 +162,13 @@ public struct LiquidPullShape: Shape, InsettableShape {
 
         // Step 8: Lower Waist into Bezel Base (Smooth concave flare)
         path.addCurve(
-            to: CGPoint(x: rect.maxX, y: baseBottom),
+            to: CGPoint(x: bezelX, y: baseBottom),
             control1: CGPoint(x: waistX + dX1 * 0.40, y: waistBottom),
             control2: CGPoint(x: rect.maxX - dX1 * 0.50, y: baseBottom)
         )
 
         // Step 9: Close straight along bezel
-        path.addLine(to: CGPoint(x: rect.maxX, y: baseTop))
+        path.addLine(to: CGPoint(x: bezelX, y: baseTop))
         path.closeSubpath()
 
         return path

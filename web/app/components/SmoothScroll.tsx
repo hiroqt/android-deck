@@ -17,8 +17,12 @@ export default function SmoothScroll() {
           lerp: 0.085,
           smoothWheel: true,
           syncTouch: false,
-          anchors: true,
-          prevent: (element) => element.hasAttribute('data-native-scroll'),
+          prevent: (element) =>
+            element.hasAttribute('data-native-scroll') ||
+            element.hasAttribute('data-lenis-prevent') ||
+            Boolean(element.closest('footer')) ||
+            Boolean(element.closest('nav')) ||
+            Boolean(element.closest('a')),
         });
       }
     };

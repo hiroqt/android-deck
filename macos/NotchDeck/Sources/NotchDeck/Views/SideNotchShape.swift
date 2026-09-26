@@ -151,10 +151,12 @@ public struct SideNotchShape: Shape, InsettableShape {
         let actualCorner = max(0, min(wantedCorner, (rect.height - 2 * actualCurl) / 2))
         let bodyTop = rect.minY + actualCurl
         let bodyBottom = rect.maxY - actualCurl
+        // Extend 2pt past the bezel boundary into off-screen casing to guarantee zero hairline gap
+        let bezelX = rect.maxX + 2.0
 
         var path = Path()
         // Start on bezel edge at top corner
-        path.move(to: CGPoint(x: rect.maxX, y: rect.minY))
+        path.move(to: CGPoint(x: bezelX, y: rect.minY))
 
         // Flare inward and down onto body's top edge
         if actualCurl > 0 {
@@ -198,7 +200,7 @@ public struct SideNotchShape: Shape, InsettableShape {
         if actualCurl > 0 {
             fluidTurn(
                 &path,
-                to: CGPoint(x: rect.maxX, y: rect.maxY),
+                to: CGPoint(x: bezelX, y: rect.maxY),
                 leaving: CGVector(dx: 1, dy: 0),
                 arriving: CGVector(dx: 0, dy: 1),
                 ramp: filletRamp
@@ -206,7 +208,7 @@ public struct SideNotchShape: Shape, InsettableShape {
         }
 
         // Close along bezel
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+        path.addLine(to: CGPoint(x: bezelX, y: rect.minY))
         path.closeSubpath()
         return path
     }

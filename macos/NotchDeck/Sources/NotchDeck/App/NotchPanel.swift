@@ -2,8 +2,53 @@ import AppKit
 import SwiftUI
 
 public final class NotchHostingView<Content: View>: NSHostingView<Content> {
-    public var currentEdge: NotchEdge = .top
-    public var isDetached: Bool = false
+    public var currentEdge: NotchEdge = .top {
+        didSet {
+            updatePlacement()
+        }
+    }
+    public var isDetached: Bool = false {
+        didSet {
+            updatePlacement()
+        }
+    }
+
+    public required init(rootView: Content) {
+        super.init(rootView: rootView)
+        commonInit()
+    }
+
+    @MainActor required dynamic init?(coder: NSCoder) {
+        super.init(coder: coder)
+        commonInit()
+    }
+
+    private func commonInit() {
+        self.wantsLayer = true
+        self.layerContentsRedrawPolicy = .duringViewResize
+        updatePlacement()
+    }
+
+    private func updatePlacement() {
+        guard let layer = self.layer else { return }
+        if isDetached {
+            self.layerContentsPlacement = .center
+            layer.contentsGravity = .center
+            return
+        }
+        switch currentEdge {
+        case .top:
+            self.layerContentsPlacement = .top
+            layer.contentsGravity = .top
+        case .right:
+            self.layerContentsPlacement = .right
+            layer.contentsGravity = .right
+        case .left:
+            self.layerContentsPlacement = .left
+            layer.contentsGravity = .left
+        }
+    }
+
 
     public override func hitTest(_ point: NSPoint) -> NSView? {
         guard let hitView = super.hitTest(point) else { return nil }

@@ -106,7 +106,7 @@ public struct LiquidGlassBackground: View {
 
     private var gradientStartPoint: UnitPoint {
         switch edge {
-        case .top: return .top
+        case .top: return .bottom
         case .right: return .leading
         case .left: return .trailing
         }
@@ -114,7 +114,7 @@ public struct LiquidGlassBackground: View {
 
     private var gradientEndPoint: UnitPoint {
         switch edge {
-        case .top: return .bottom
+        case .top: return .top
         case .right: return .trailing
         case .left: return .leading
         }
@@ -172,8 +172,8 @@ public struct LiquidGlassBackground: View {
                             stops: [
                                 .init(color: Color.white.opacity(specularIntensity), location: 0.0),
                                 .init(color: Color.white.opacity(specularIntensity * 0.45), location: 0.25),
-                                .init(color: Color.white.opacity(0.08 * specularIntensity), location: 0.7),
-                                .init(color: Color.white.opacity(0.02 * specularIntensity), location: 1.0)
+                                .init(color: Color.white.opacity(0.08 * specularIntensity), location: 0.65),
+                                .init(color: Color.clear, location: 0.90)
                             ],
                             startPoint: gradientStartPoint,
                             endPoint: gradientEndPoint
@@ -188,10 +188,10 @@ public struct LiquidGlassBackground: View {
                         shape
                             .stroke(
                                 LinearGradient(
-                                    colors: [
-                                        Color.cyan.opacity(0.35 * specularIntensity),
-                                        Color.blue.opacity(0.20 * specularIntensity),
-                                        Color.clear
+                                    stops: [
+                                        .init(color: Color.cyan.opacity(0.35 * specularIntensity), location: 0.0),
+                                        .init(color: Color.blue.opacity(0.20 * specularIntensity), location: 0.35),
+                                        .init(color: Color.clear, location: 0.75)
                                     ],
                                     startPoint: gradientStartPoint,
                                     endPoint: gradientEndPoint

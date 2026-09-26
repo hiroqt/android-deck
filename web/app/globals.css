@@ -751,64 +751,7 @@ h1 > .hero-line + .hero-line {
   text-wrap: pretty;
 }
 
-/* ==========================================================================
-   Requirements Section
-   Strictly Zero Cards: Hairline Divided Rows, Same Font, No Badges
-   ========================================================================== */
 
-.requirements-section {
-  width: min(1040px, calc(100vw - 32px));
-  margin: 0 auto 0 50%;
-  transform: translateX(-50%);
-  padding: 64px 0;
-  border-bottom: 1px solid var(--line);
-}
-
-.requirements-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  border-top: 1px solid var(--line);
-}
-
-.requirements-list li {
-  display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
-  gap: 32px;
-  align-items: baseline;
-  padding: 24px 0;
-  border-bottom: 1px solid var(--line);
-}
-
-.requirement-title {
-  margin: 0;
-  color: var(--ink);
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: -0.015em;
-}
-
-.requirement-content {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.requirement-primary {
-  margin: 0;
-  color: var(--ink);
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.5;
-}
-
-.requirement-desc {
-  margin: 0;
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.6;
-  text-wrap: pretty;
-}
 
 /* ==========================================================================
    FAQ Section
@@ -987,15 +930,8 @@ h1 > .hero-line + .hero-line {
     justify-self: start;
   }
 
-  .requirements-section,
   .faq-section {
-    padding: 48px 0;
-  }
-
-  .requirements-list li {
-    grid-template-columns: 1fr;
-    gap: 8px;
-    padding: 20px 0;
+    padding: 56px 0;
   }
 
   .faq-trigger {
@@ -1030,6 +966,8 @@ h1 > .hero-line + .hero-line {
 }
 
 footer {
+  position: relative;
+  z-index: 50;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1040,17 +978,24 @@ footer {
   margin-top: 48px;
   padding-top: 24px;
   border-top: 1px solid var(--line);
+  pointer-events: auto;
 }
 
 footer .links {
   display: flex;
-  gap: 18px;
+  flex-wrap: wrap;
+  column-gap: 18px;
+  row-gap: 8px;
 }
 
 footer a {
   color: inherit;
   text-decoration: none;
   transition: color .15s ease;
+  cursor: pointer;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 footer a:hover {

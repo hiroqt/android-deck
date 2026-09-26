@@ -13,10 +13,14 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Ensure APK download portal is running for QR code scanning
         PhoneDeckService.shared.startPortalServerIfNeeded()
+
+        // Start zero-terminal automatic ADB USB reverse tunnel service
+        AdbTunnelService.shared.start()
     }
 
     public func applicationWillTerminate(_ notification: Notification) {
         PhoneDeckHostServer.shared.stop()
+        AdbTunnelService.shared.stop()
     }
 
     private func setupStatusItem() {

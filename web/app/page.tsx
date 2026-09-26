@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { AnimatePresence, motion } from 'motion/react';
 import TopNotchIsland from './components/TopNotchIsland';
 import FigureShowcase from './components/FigureShowcase';
 import CoreFeatures from './components/CoreFeatures';
-import RequirementsSection from './components/RequirementsSection';
 import CtaMacbookDemo from './components/CtaMacbookDemo';
+import SiteFooter from './components/SiteFooter';
 
 function AppleLetterIcon({ className }: { className?: string }) {
   return (
@@ -142,13 +143,31 @@ export default function HomePage() {
 
           <div className="actions">
             <div className="hero-actions-row">
-              <a className="button" href="#live-demo">
-                <span>Watch it work</span>
-                <span className="amount" aria-hidden="true">↓</span>
+              <button
+                type="button"
+                className="button cursor-pointer"
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('notchdeck-try-notch'));
+                }}
+              >
+                <span>Try notch</span>
+                <span className="amount" aria-hidden="true">✦</span>
+              </button>
+              <a
+                className="secondary-button"
+                href="/downloads/NotchDeck.dmg"
+                download="NotchDeck.dmg"
+              >
+                <AppleLetterIcon className="w-3.5 h-3.5 inline-block -mt-0.5 mr-1" />
+                <span>Download for Mac (.dmg)</span>
+                <span aria-hidden="true">↓</span>
               </a>
-              <a className="secondary-button" href="#how-it-works">
-                See how it works <span aria-hidden="true">↓</span>
-              </a>
+            </div>
+            <div className="flex items-center gap-2 text-[12px] text-[#526077] pt-3 font-medium">
+              <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10.5px] font-semibold tracking-wide uppercase">
+                Android APK
+              </span>
+              <span>Install Mac app, then scan the QR in Settings to download the phone APK</span>
             </div>
           </div>
         </section>
@@ -161,7 +180,7 @@ export default function HomePage() {
 
         <section className="how-section" id="how-it-works" aria-labelledby="how-title">
           <div className="section-heading">
-            <span className="section-kicker">Quick setup</span>
+            <span className="section-kicker">How does it work?</span>
             <h2 id="how-title">Ready in three simple steps.</h2>
             <p>Keep your most-used Mac apps and controls within easy reach on your phone.</p>
           </div>
@@ -170,27 +189,33 @@ export default function HomePage() {
             <li>
               <span className="step-number" aria-hidden="true">1</span>
               <div>
-                <h3>Connect your phone</h3>
+                <h3>Download NotchDeck for Mac</h3>
                 <p>
-                  Plug your Android phone into your Mac with a USB data cable, or connect
-                  wirelessly over your local Wi-Fi / LAN network.
+                  Download <code>NotchDeck.dmg</code>, drag it to Applications, and launch.
+                  It runs automatically with zero terminal commands.
                 </p>
               </div>
-              <span className="step-detail">USB / LAN</span>
+              <span className="step-detail">macOS .dmg</span>
             </li>
             <li>
               <span className="step-number" aria-hidden="true">2</span>
               <div>
-                <h3>Choose your shortcuts</h3>
-                <p>Open the notch panel and pick the apps or controls you use most.</p>
+                <h3>Scan QR to download phone APK</h3>
+                <p>
+                  Open NotchDeck Preferences on your Mac, click the Android App tab, and
+                  scan the QR code with your phone camera to download the APK.
+                </p>
               </div>
-              <span className="step-detail">6 slots</span>
+              <span className="step-detail">Scan QR</span>
             </li>
             <li>
               <span className="step-number" aria-hidden="true">3</span>
               <div>
-                <h3>Tap and get things done</h3>
-                <p>Use your phone as a desk controller. Each tap runs the action on your Mac.</p>
+                <h3>Connect &amp; tap your shortcuts</h3>
+                <p>
+                  Connect via USB cable or local Wi-Fi. Your 6 shortcuts synchronize
+                  live between your camera notch and your phone.
+                </p>
               </div>
               <span className="step-detail">Instant</span>
             </li>
@@ -205,34 +230,23 @@ export default function HomePage() {
           </aside>
         </section>
 
-        {/* System Requirements */}
-        <RequirementsSection />
-
         <section className="closing-section" id="get-started" aria-labelledby="closing-title">
           <div className="closing-header">
             <div>
-              <span className="section-kicker">Make your phone useful at your desk</span>
+              <span className="section-kicker">Ready to get started?</span>
               <h2 id="closing-title">Your everyday shortcuts, one tap away.</h2>
               <p>Set up six controls for the apps and actions you reach for all day.</p>
             </div>
-            <a className="button" href="https://github.com/arnel/android-deck" target="_blank" rel="noopener noreferrer">
-              <span>Get NotchDeck</span>
-              <span className="amount" aria-hidden="true">↗</span>
+            <a className="button" href="/downloads/NotchDeck.dmg" download="NotchDeck.dmg">
+              <span>Download NotchDeck for Mac (.dmg)</span>
+              <span className="amount" aria-hidden="true">↓</span>
             </a>
           </div>
           <CtaMacbookDemo />
         </section>
 
-        {/* Clean Bendy-Style Footer */}
-        <footer>
-          <span>© 2026 NotchDeck</span>
-          <nav className="links" aria-label="Footer Navigation">
-            <a href="#features">Features</a>
-            <a href="#how-it-works">How it works</a>
-            <a href="#requirements">Requirements</a>
-            <a href="/support">Support</a>
-          </nav>
-        </footer>
+        {/* Reusable Clean Site Footer */}
+        <SiteFooter hideHome />
       </main>
     </div>
   );

@@ -118,7 +118,45 @@ public struct NotchDeckRootView: View {
         }
     }
 
-    private var rootAlignment: Alignment {
+
+    private var notchCornerRadius: CGFloat {
+        if isDetached {
+            return 20
+        }
+        if isExpanded {
+            return 24
+        }
+        return (hasPhysicalNotch && edge == .top) ? 14 : 18
+    }
+
+    private var shape: LiquidPullShape {
+        LiquidPullShape(
+            edge: edge,
+            stretchDistance: stretchDistance,
+            lateralOffset: lateralOffset,
+            isDetached: isDetached,
+            cornerRadius: notchCornerRadius
+        )
+    }
+
+    public var body: some View {
+        GeometryReader { proxy in
+            let effectiveWindowSize = CGSize(
+                width: proxy.size.width > 0 ? proxy.size.width : totalContainerWidth,
+                height: proxy.size.height > 0 ? proxy.size.height : totalContainerHeight
+            )
+            let notchSize = currentNotchSize(in: effectiveWindowSize)
+
+            ZStack(alignment: notchAlignment) {
+                mainNotchContainer(size: notchSize)
+                    .frame(width: notchSize.width, height: notchSize.height)
+            }
+            .frame(width: effectiveWindowSize.width, height: effectiveWindowSize.height, alignment: notchAlignment)
+            .animation(nil, value: effectiveWindowSize)
+        }
+    }
+
+    private var notchAlignment: Alignment {
         if isDetached { return .center }
         switch edge {
         case .top: return .top
@@ -127,36 +165,32 @@ public struct NotchDeckRootView: View {
         }
     }
 
-    private var containerPadding: EdgeInsets {
+    private func currentNotchSize(in windowSize: CGSize) -> CGSize {
         if isDetached {
-            return EdgeInsets(top: shadowMargin, leading: shadowMargin, bottom: shadowMargin, trailing: shadowMargin)
+            return CGSize(
+                width: max(0, windowSize.width - shadowMargin * 2),
+                height: max(0, windowSize.height - shadowMargin * 2)
+            )
         }
         switch edge {
         case .top:
-            return EdgeInsets(top: 0, leading: shadowMargin, bottom: shadowMargin, trailing: shadowMargin)
-        case .right:
-            return EdgeInsets(top: shadowMargin, leading: shadowMargin, bottom: shadowMargin, trailing: 0)
-        case .left:
-            return EdgeInsets(top: shadowMargin, leading: 0, bottom: shadowMargin, trailing: shadowMargin)
+            return CGSize(
+                width: max(0, windowSize.width - shadowMargin * 2),
+                height: max(0, windowSize.height - shadowMargin)
+            )
+        case .right, .left:
+            return CGSize(
+                width: max(0, windowSize.width - shadowMargin),
+                height: max(0, windowSize.height - shadowMargin * 2)
+            )
         }
     }
 
-    public var body: some View {
-        ZStack(alignment: rootAlignment) {
-            mainNotchContainer
-                .padding(containerPadding)
-        }
-        .frame(width: totalContainerWidth, height: totalContainerHeight)
-        .animation(.easeInOut(duration: 0.26), value: isExpanded)
-        .animation(.easeInOut(duration: 0.26), value: edge)
-        .animation(.easeInOut(duration: 0.26), value: isDetached)
-    }
-
-    private var mainNotchContainer: some View {
+    private func mainNotchContainer(size: CGSize) -> some View {
         ZStack(alignment: containerAlignment) {
             LiquidGlassBackground(
                 edge: edge,
-                cornerRadius: isDetached ? 20 : (isExpanded ? 24 : (hasPhysicalNotch && edge == .top ? 14 : 18)),
+                cornerRadius: notchCornerRadius,
                 curlRadius: (hasPhysicalNotch && edge == .top && !isExpanded) ? 12 : 14,
                 specularIntensity: configManager.config.appearance.specularIntensity,
                 isExpanded: isExpanded,
@@ -167,55 +201,51 @@ public struct NotchDeckRootView: View {
                 ambientBacklightEnabled: configManager.config.appearance.ambientBacklightEnabled
             )
 
-            if isDraggingOrStretching {
-                // THE LIQUID PART ONLY (not the whole deck notch!)
-                LiquidDropletContentView(
-                    edge: edge,
-                    phoneDeckService: phoneDeckService,
-                    isDetached: isDetached,
-                    dragTargetEdge: dragTargetEdge
-                )
-                .frame(
-                    width: isDetached ? 76 : (edge.isVertical ? 44 : 76),
-                    height: isDetached ? 40 : (edge.isVertical ? 60 : 32)
-                )
-                .offset(dropletContentOffset)
-                .transition(.opacity)
-            } else if isExpanded {
-                ExpandedDeckView(
-                    phoneDeckService: phoneDeckService,
-                    edge: edge,
-                    hasPhysicalNotch: hasPhysicalNotch,
-                    onCollapse: {
-                        withAnimation(.easeInOut(duration: 0.26)) {
+            Group {
+                if isDraggingOrStretching {
+                    // THE LIQUID PART ONLY (not the whole deck notch!)
+                    LiquidDropletContentView(
+                        edge: edge,
+                        phoneDeckService: phoneDeckService,
+                        isDetached: isDetached,
+                        dragTargetEdge: dragTargetEdge
+                    )
+                    .frame(
+                        width: isDetached ? 76 : (edge.isVertical ? 44 : 76),
+                        height: isDetached ? 40 : (edge.isVertical ? 60 : 32)
+                    )
+                    .offset(dropletContentOffset)
+                    .transition(.opacity)
+                } else if isExpanded {
+                    ExpandedDeckView(
+                        phoneDeckService: phoneDeckService,
+                        edge: edge,
+                        hasPhysicalNotch: hasPhysicalNotch,
+                        onCollapse: {
                             isExpanded = false
-                        }
-                    },
-                    onOpenSettings: onOpenSettings,
-                    onSelectSlotToEdit: onSelectPhoneSlot
-                )
-                .transition(.asymmetric(
-                    insertion: .opacity.combined(with: .scale(scale: 0.95, anchor: contentAnchor)),
-                    removal: .opacity
-                ))
-            } else {
-                CollapsedNotchView(
-                    phoneDeckService: phoneDeckService,
-                    edge: edge,
-                    hasPhysicalNotch: hasPhysicalNotch,
-                    notchWidth: hasPhysicalNotch ? ScreenGeometry.physicalCollapsedWidth(physicalNotchWidth: physicalNotchWidth) : 184,
-                    notchHeight: hasPhysicalNotch ? ScreenGeometry.physicalCollapsedHeight(topSafeAreaInset: topSafeAreaInset) : 34,
-                    physicalNotchWidth: physicalNotchWidth,
-                    onExpand: {
-                        withAnimation(.easeInOut(duration: 0.26)) {
+                        },
+                        onOpenSettings: onOpenSettings,
+                        onSelectSlotToEdit: onSelectPhoneSlot
+                    )
+                    .transition(.opacity)
+                } else {
+                    CollapsedNotchView(
+                        phoneDeckService: phoneDeckService,
+                        edge: edge,
+                        hasPhysicalNotch: hasPhysicalNotch,
+                        notchWidth: hasPhysicalNotch ? ScreenGeometry.physicalCollapsedWidth(physicalNotchWidth: physicalNotchWidth) : 184,
+                        notchHeight: hasPhysicalNotch ? ScreenGeometry.physicalCollapsedHeight(topSafeAreaInset: topSafeAreaInset) : 34,
+                        physicalNotchWidth: physicalNotchWidth,
+                        onExpand: {
                             isExpanded = true
                         }
-                    }
-                )
-                .transition(.opacity)
+                    )
+                    .transition(.opacity)
+                }
             }
+            .clipShape(shape)
         }
-        .frame(width: contentWidth, height: contentHeight)
+        .frame(width: size.width, height: size.height)
         .simultaneousGesture(
             DragGesture(minimumDistance: 4)
                 .onChanged { _ in

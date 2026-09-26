@@ -69,22 +69,9 @@ public struct SideNotchBubbleView: View {
                 .fill(.ultraThinMaterial)
                 .overlay(
                     bubbleShape
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color(white: 0.16, opacity: 0.94),
-                                    Color(white: 0.06, opacity: 0.98)
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
+                        .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.75)
                 )
-                .overlay(
-                    bubbleShape
-                        .strokeBorder(Color.white.opacity(0.20), lineWidth: 0.75)
-                )
-                .shadow(color: Color.black.opacity(0.40), radius: 8, x: edge == .right ? -2 : 2, y: 2)
+                .shadow(color: Color.black.opacity(0.35), radius: 6, x: edge == .right ? -2 : 2, y: 2)
         )
         .fixedSize()
     }

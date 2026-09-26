@@ -112,11 +112,22 @@ export default function TopNotchIsland({
       }
       setIsExpanded(false);
     };
+
+    const handleTryNotch = () => {
+      setDockPosition((prev) => (prev === 'floating' ? 'top' : prev));
+      setIsExpanded(true);
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+
     window.addEventListener('notchdeck-toggle-notch', handleToggle);
     window.addEventListener('macdeck-toggle-notch', handleToggle);
+    window.addEventListener('notchdeck-try-notch', handleTryNotch);
     return () => {
       window.removeEventListener('notchdeck-toggle-notch', handleToggle);
       window.removeEventListener('macdeck-toggle-notch', handleToggle);
+      window.removeEventListener('notchdeck-try-notch', handleTryNotch);
       if (typeof document !== 'undefined') {
         document.body.classList.remove('is-notch-dragging');
       }

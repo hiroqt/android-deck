@@ -263,11 +263,29 @@ function TikTokAppIcon({ size = 48, className = '' }: { size?: number; className
   );
 }
 
+function CloudOffIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M22.61 16.95A5 5 0 0 0 18 10h-1.26a8 8 0 0 0-7.05-6M5 5a8 8 0 0 0-4 7h1.4a5 5 0 0 0 7.6 5.8" />
+      <line x1="2" y1="2" x2="22" y2="22" />
+    </svg>
+  );
+}
+
 export default function CoreFeatures() {
   return (
     <section className="features-section" id="features" aria-labelledby="features-title">
       <div className="section-heading">
-        <span className="section-kicker">Core features</span>
+        <span className="section-kicker">What are the features?</span>
         <h2 id="features-title">
           Six tactile superpowers.<br />
           Built for your desk.
@@ -641,10 +659,6 @@ export default function CoreFeatures() {
                   }}
                 />
               </div>
-
-              <span className="text-[10.5px] font-mono text-emerald-400/90 font-medium">
-                USB Hardware Loopback
-              </span>
             </div>
           </div>
         </div>
@@ -877,60 +891,185 @@ export default function CoreFeatures() {
 
         {/* ========================================================= */}
         {/* Card 6: 100% Offline                                      */}
-        {/* Showcase: Encrypted peer-to-peer pulse with cloud blocked */}
+        {/* Showcase: Direct desk link between Mac and Phone with zero cloud */}
         {/* ========================================================= */}
         <div className="feature-card" role="listitem">
           <h3 className="feature-card-title">100% Offline</h3>
 
           <div className="feature-visual-stage">
-            <div className="w-full h-full flex flex-col items-center justify-center gap-3.5">
-              {/* Direct Device Link */}
-              <div className="flex items-center gap-2">
-                <div className="px-2.5 py-1 rounded-md bg-white/5 border border-white/15 text-[10.5px] font-mono text-white/80">
-                  Mac
+            <div className="w-full h-full flex flex-col items-center justify-between py-2.5 px-3">
+              {/* Top Banner: No Internet Needed */}
+              <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/[0.04] border border-white/10 text-[9.5px] font-mono text-white/60">
+                <CloudOffIcon className="w-3 h-3 text-white/40" />
+                <span>No internet needed</span>
+              </div>
+
+              {/* Center Hardware Stage: Mini Mac + Direct Bridge + Mini Phone Deck */}
+              <div className="w-full flex items-center justify-center gap-2 sm:gap-2.5 my-auto">
+                {/* Miniature MacBook Frame */}
+                <div className="flex flex-col items-center shrink-0">
+                  <div className="relative w-[62px] h-[38px] rounded-t-[5px] bg-[#0a0d17] border border-white/20 shadow-md flex flex-col items-center pt-0.5 overflow-hidden">
+                    {/* Camera Notch */}
+                    <motion.div
+                      className="w-4 h-1.5 bg-black rounded-b-sm flex items-center justify-center relative z-10"
+                      animate={{
+                        boxShadow: [
+                          '0 0 0px transparent',
+                          '0 0 8px rgba(52,211,153,0.9)',
+                          '0 0 0px transparent',
+                        ],
+                      }}
+                      transition={{
+                        duration: 3.2,
+                        repeat: Infinity,
+                        times: [0, 0.58, 0.85],
+                        ease: 'easeInOut',
+                      }}
+                    >
+                      <motion.div
+                        className="w-0.5 h-0.5 rounded-full bg-emerald-400"
+                        animate={{ opacity: [0.3, 1, 0.3] }}
+                        transition={{ duration: 1.2, repeat: Infinity }}
+                      />
+                    </motion.div>
+
+                    {/* Mac Screen Action Surface */}
+                    <motion.div
+                      className="w-[50px] h-[24px] mt-0.5 rounded-[3px] bg-white/[0.04] border border-white/10 flex items-center justify-center relative overflow-hidden"
+                      animate={{
+                        backgroundColor: [
+                          'rgba(255,255,255,0.03)',
+                          'rgba(52,211,153,0.18)',
+                          'rgba(255,255,255,0.03)',
+                        ],
+                        borderColor: [
+                          'rgba(255,255,255,0.1)',
+                          'rgba(52,211,153,0.7)',
+                          'rgba(255,255,255,0.1)',
+                        ],
+                      }}
+                      transition={{
+                        duration: 3.2,
+                        repeat: Infinity,
+                        times: [0, 0.58, 0.85],
+                        ease: 'easeInOut',
+                      }}
+                    >
+                      <div className="flex items-center gap-1 text-[8px] font-mono text-emerald-300 font-semibold">
+                        <span className="text-[7.5px] text-white/70">Mac</span>
+                        <motion.span
+                          animate={{
+                            opacity: [0, 1, 0],
+                            scale: [0.5, 1, 0.5],
+                          }}
+                          transition={{
+                            duration: 3.2,
+                            repeat: Infinity,
+                            times: [0, 0.58, 0.85],
+                          }}
+                        >
+                          ✓
+                        </motion.span>
+                      </div>
+                    </motion.div>
+                  </div>
+                  {/* Laptop Base */}
+                  <div className="w-[74px] h-[3px] bg-[#1a2133] rounded-b border-t border-white/15 flex items-center justify-center">
+                    <div className="w-3.5 h-[1px] bg-white/20 rounded-full" />
+                  </div>
                 </div>
 
-                {/* Data Packets Passing Safely */}
-                <div className="relative w-16 h-1 bg-white/10 rounded-full flex items-center">
+                {/* Direct High-Speed Bridge */}
+                <div className="relative flex-1 max-w-[80px] flex flex-col items-center">
+                  {/* Cable Track */}
+                  <div className="relative w-full h-[3px] bg-white/10 rounded-full overflow-hidden border border-white/10">
+                    {/* Animated Packet Stream from Phone to Mac */}
+                    <motion.div
+                      className="absolute top-0 bottom-0 w-5 bg-gradient-to-l from-emerald-400 via-white to-transparent rounded-full shadow-[0_0_8px_#34d399]"
+                      animate={{
+                        x: [80, -20],
+                        opacity: [0, 1, 1, 0],
+                      }}
+                      transition={{
+                        duration: 3.2,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                        times: [0.2, 0.58],
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Miniature Android Phone Deck */}
+                <div className="relative w-[36px] h-[52px] rounded-[7px] bg-[#0a0d17] border border-white/20 shadow-md p-1 flex flex-col justify-between overflow-hidden shrink-0">
+                  {/* Top Speaker */}
+                  <div className="w-2 h-[1px] bg-white/40 rounded-full mx-auto" />
+
+                  {/* 2x3 Mini Shortcut Grid */}
+                  <div className="grid grid-cols-2 gap-0.5 my-auto">
+                    {/* Slot 1: Active Tapped Shortcut */}
+                    <motion.div
+                      className="w-3 h-2.5 rounded-[2px] bg-cyan-500/30 border border-cyan-400/40 relative"
+                      animate={{
+                        scale: [1, 0.8, 1.15, 1],
+                        backgroundColor: [
+                          'rgba(6,194,231,0.25)',
+                          'rgba(52,211,153,0.9)',
+                          'rgba(6,194,231,0.4)',
+                          'rgba(6,194,231,0.25)',
+                        ],
+                      }}
+                      transition={{
+                        duration: 3.2,
+                        repeat: Infinity,
+                        times: [0, 0.18, 0.28, 0.45],
+                      }}
+                    >
+                      {/* Tap Ripple */}
+                      <motion.div
+                        className="absolute inset-0 rounded-[2px] border border-emerald-400 pointer-events-none"
+                        animate={{
+                          scale: [1, 2.2],
+                          opacity: [0, 0.8, 0],
+                        }}
+                        transition={{
+                          duration: 3.2,
+                          repeat: Infinity,
+                          times: [0, 0.22, 0.45],
+                        }}
+                      />
+                    </motion.div>
+
+                    {/* Slots 2-6: Standby Shortcuts */}
+                    <div className="w-3 h-2.5 rounded-[2px] bg-amber-500/20 border border-amber-400/30" />
+                    <div className="w-3 h-2.5 rounded-[2px] bg-rose-500/20 border border-rose-400/30" />
+                    <div className="w-3 h-2.5 rounded-[2px] bg-purple-500/20 border border-purple-400/30" />
+                    <div className="w-3 h-2.5 rounded-[2px] bg-emerald-500/20 border border-emerald-400/30" />
+                    <div className="w-3 h-2.5 rounded-[2px] bg-blue-500/20 border border-blue-400/30" />
+                  </div>
+
+                  {/* Touch Tap Indicator */}
                   <motion.div
-                    className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,1)]"
+                    className="absolute top-2 left-1.5 w-3.5 h-3.5 rounded-full bg-white/70 border border-white shadow-[0_0_8px_white] pointer-events-none"
                     animate={{
-                      x: [0, 52, 0],
+                      scale: [0, 1, 0.7, 0],
+                      opacity: [0, 0.9, 1, 0],
                     }}
                     transition={{
-                      duration: 2,
+                      duration: 3.2,
                       repeat: Infinity,
-                      ease: 'easeInOut',
+                      times: [0, 0.14, 0.22, 0.35],
                     }}
                   />
-                </div>
 
-                <div className="px-2.5 py-1 rounded-md bg-white/5 border border-white/15 text-[10.5px] font-mono text-white/80">
-                  Phone
+                  <span className="text-[6.5px] font-mono text-center text-white/50 leading-none">Deck</span>
                 </div>
               </div>
 
-              {/* Shield & Zero Cloud Verification */}
-              <motion.div
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 text-[10.5px] font-medium font-mono"
-                animate={{
-                  boxShadow: [
-                    '0 0 0px rgba(52,211,153,0)',
-                    '0 0 10px rgba(52,211,153,0.3)',
-                    '0 0 0px rgba(52,211,153,0)',
-                  ],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }}
-              >
-                <svg className="w-3.5 h-3.5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                </svg>
-                <span>Zero Cloud • No Accounts</span>
-              </motion.div>
+              {/* Bottom Reassurance Tag */}
+              <div className="text-[9.5px] text-white/60 font-medium text-center">
+                Your shortcuts stay on your desk
+              </div>
             </div>
           </div>
         </div>

@@ -165,16 +165,8 @@ public struct CollapsedNotchView: View {
                                 .foregroundColor(.green)
                         }
                     }
-                    .padding(.horizontal, 6)
+                    .padding(.horizontal, 4)
                     .padding(.vertical, 2)
-                    .background(
-                        Capsule()
-                            .fill(Color.white.opacity(0.1))
-                            .overlay(
-                                Capsule()
-                                    .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5)
-                            )
-                    )
                 } else {
                     HStack(spacing: 3) {
                         Image(systemName: "iphone")
@@ -185,16 +177,8 @@ public struct CollapsedNotchView: View {
                             .font(.system(size: 10, weight: .semibold, design: .rounded))
                             .foregroundColor(Color.white.opacity(0.9))
                     }
-                    .padding(.horizontal, 6)
+                    .padding(.horizontal, 4)
                     .padding(.vertical, 2)
-                    .background(
-                        Capsule()
-                            .fill(Color.white.opacity(0.1))
-                            .overlay(
-                                Capsule()
-                                    .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5)
-                            )
-                    )
                 }
             } else {
                 Circle()
@@ -211,12 +195,13 @@ public struct CollapsedNotchView: View {
     private var verticalSidebarView: some View {
         Button(action: onExpand) {
             VStack(spacing: 8) {
+                Spacer(minLength: 0)
+
                 // Connection Status Indicator Dot (Clean & Unobtrusive)
                 Circle()
                     .fill(phoneDeckService.isDeviceConnected ? Color.green : Color.orange)
                     .frame(width: 6, height: 6)
                     .shadow(color: phoneDeckService.isDeviceConnected ? Color.green.opacity(0.85) : Color.orange.opacity(0.5), radius: 3)
-                    .padding(.top, 14)
 
                 // Single Phone Charge Ring Gauge
                 VStack(spacing: 4) {
@@ -244,15 +229,20 @@ public struct CollapsedNotchView: View {
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundColor(.white)
                     }
+                    .frame(width: 28, height: 28)
 
                     if let level = currentBatteryLevel {
                         Text("\(level)%")
-                            .font(.system(size: 9.5, weight: .bold, design: .rounded))
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
                             .foregroundColor(Color.white.opacity(0.92))
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity, alignment: .center)
                     } else {
                         Text("Sync")
                             .font(.system(size: 8.5, weight: .semibold, design: .rounded))
                             .foregroundColor(Color.white.opacity(0.55))
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity, alignment: .center)
                     }
                 }
 

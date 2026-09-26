@@ -70,7 +70,7 @@ public struct ExpandedDeckView: View {
             // Header Bar
             if edge.isVertical {
                 verticalHeader
-                Spacer().frame(height: 8)
+                Spacer().frame(height: 14)
             } else {
                 horizontalHeader
                 Spacer().frame(height: 12)
@@ -83,13 +83,13 @@ public struct ExpandedDeckView: View {
                         GridItem(.fixed(122), spacing: 10),
                         GridItem(.fixed(122), spacing: 10)
                     ],
-                    spacing: 10
+                    spacing: 12
                 ) {
                     ForEach(displaySlots) { slot in
                         DeckSlotCardView(
                             slot: slot,
                             cardWidth: 122,
-                            cardHeight: 70,
+                            cardHeight: 78,
                             onEdit: {
                                 onSelectSlotToEdit(slot)
                             },
@@ -102,7 +102,7 @@ public struct ExpandedDeckView: View {
                         .id("\(slot.id)-\(slot.bundleId)-\(slot.label)")
                     }
                 }
-                .padding(.horizontal, 14)
+                .padding(.horizontal, 13)
             } else {
                 LazyVGrid(
                     columns: [
@@ -187,7 +187,7 @@ public struct ExpandedDeckView: View {
                 }
             }
             .padding(.horizontal, 20)
-            .padding(.top, 16)
+            .padding(.top, 22)
 
             // Device Status Badge (Full Width Centered)
             deviceStatusBadge
@@ -330,16 +330,8 @@ public struct ExpandedDeckView: View {
                 .padding(.leading, 2)
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 4.5)
-        .background(
-            Capsule()
-                .fill(Color.white.opacity(0.08))
-                .overlay(
-                    Capsule()
-                        .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.75)
-                )
-        )
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3)
     }
 
     private var connectedDeviceNameText: String {
