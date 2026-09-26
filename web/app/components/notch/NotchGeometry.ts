@@ -30,32 +30,36 @@ export function getNotchGeometry(
   if (edge === 'top') {
     const ear = Math.min(r1, w / 4, h / 2.2);
     const corner = Math.min(r2, (w - 2 * ear) / 2, h - ear);
-    const wallH = h - ear - corner;
 
-    // Rim path: starts at (0, 0), traces down through ears and bottom, ends at (w, 0).
-    // NO top bezel line!
+    if (ear <= 0.5) {
+      // Clean flush notch: 90-degree bezel alignment, perfectly rounded bottom corners, 0 horns
+      const rimPath = [
+        `M 0 0`,
+        `L 0 ${h - corner}`,
+        `C 0 ${h - corner * (1 - C)}, ${corner * (1 - C)} ${h}, ${corner} ${h}`,
+        `L ${w - corner} ${h}`,
+        `C ${w - corner * (1 - C)} ${h}, ${w} ${h - corner * (1 - C)}, ${w} ${h - corner}`,
+        `L ${w} 0`,
+      ].join(' ');
+      const fillPath = `${rimPath} Z`;
+      return { fillPath, rimPath };
+    }
+
+    const wallH = h - ear - corner;
     const rimPath = [
       `M 0 0`,
-      // Left concave flare into notch
       `C ${ear * C} 0, ${ear} ${ear * (1 - C)}, ${ear} ${ear}`,
-      // Left vertical wall
       wallH > 0 ? `L ${ear} ${ear + wallH}` : '',
-      // Bottom-left convex corner
       `C ${ear} ${h - corner * (1 - C)}, ${ear + corner * (1 - C)} ${h}, ${ear + corner} ${h}`,
-      // Bottom flat edge
       `L ${w - ear - corner} ${h}`,
-      // Bottom-right convex corner
       `C ${w - ear - corner * (1 - C)} ${h}, ${w - ear} ${h - corner * (1 - C)}, ${w - ear} ${ear + wallH}`,
-      // Right vertical wall
       wallH > 0 ? `L ${w - ear} ${ear}` : '',
-      // Right concave flare out to bezel
       `C ${w - ear} ${ear * (1 - C)}, ${w - ear * (1 - C)} 0, ${w} 0`,
     ]
       .filter(Boolean)
       .join(' ');
 
     const fillPath = `${rimPath} Z`;
-
     return { fillPath, rimPath };
   }
 
@@ -63,23 +67,30 @@ export function getNotchGeometry(
     // Bezel at x = 0
     const ear = Math.min(r1, h / 4, w / 2.2);
     const corner = Math.min(r2, (h - 2 * ear) / 2, w - ear);
-    const wallW = w - ear - corner;
 
+    if (ear <= 0.5) {
+      // Clean flush side notch: flush against left edge, perfectly rounded outer corners
+      const rimPath = [
+        `M 0 0`,
+        `L ${w - corner} 0`,
+        `C ${w - corner * (1 - C)} 0, ${w} ${corner * (1 - C)}, ${w} ${corner}`,
+        `L ${w} ${h - corner}`,
+        `C ${w} ${h - corner * (1 - C)}, ${w - corner * (1 - C)} ${h}, ${w - corner} ${h}`,
+        `L 0 ${h}`,
+      ].join(' ');
+      const fillPath = `${rimPath} Z`;
+      return { fillPath, rimPath };
+    }
+
+    const wallW = w - ear - corner;
     const rimPath = [
       `M 0 0`,
-      // Top concave flare
       `C 0 ${ear * C}, ${ear * (1 - C)} ${ear}, ${ear} ${ear}`,
-      // Top horizontal wall
       wallW > 0 ? `L ${ear + wallW} ${ear}` : '',
-      // Top-right convex corner
       `C ${w - corner * (1 - C)} ${ear}, ${w} ${ear + corner * (1 - C)}, ${w} ${ear + corner}`,
-      // Right vertical edge
       `L ${w} ${h - ear - corner}`,
-      // Bottom-right convex corner
       `C ${w} ${h - ear - corner * (1 - C)}, ${w - corner * (1 - C)} ${h - ear}, ${ear + wallW} ${h - ear}`,
-      // Bottom horizontal wall
       wallW > 0 ? `L ${ear} ${h - ear}` : '',
-      // Bottom concave flare out to bezel
       `C ${ear * (1 - C)} ${h - ear}, 0 ${h - ear * (1 - C)}, 0 ${h}`,
     ]
       .filter(Boolean)
@@ -92,23 +103,30 @@ export function getNotchGeometry(
   // Right edge: bezel at x = w
   const ear = Math.min(r1, h / 4, w / 2.2);
   const corner = Math.min(r2, (h - 2 * ear) / 2, w - ear);
-  const wallW = w - ear - corner;
 
+  if (ear <= 0.5) {
+    // Clean flush side notch: flush against right edge, perfectly rounded outer corners
+    const rimPath = [
+      `M ${w} 0`,
+      `L ${corner} 0`,
+      `C ${corner * (1 - C)} 0, 0 ${corner * (1 - C)}, 0 ${corner}`,
+      `L 0 ${h - corner}`,
+      `C 0 ${h - corner * (1 - C)}, ${corner * (1 - C)} ${h}, ${corner} ${h}`,
+      `L ${w} ${h}`,
+    ].join(' ');
+    const fillPath = `${rimPath} Z`;
+    return { fillPath, rimPath };
+  }
+
+  const wallW = w - ear - corner;
   const rimPath = [
     `M ${w} 0`,
-    // Top concave flare
     `C ${w} ${ear * C}, ${w - ear * (1 - C)} ${ear}, ${w - ear} ${ear}`,
-    // Top horizontal wall
     wallW > 0 ? `L ${corner} ${ear}` : '',
-    // Top-left convex corner
     `C ${corner * (1 - C)} ${ear}, 0 ${ear + corner * (1 - C)}, 0 ${ear + corner}`,
-    // Left vertical edge
     `L 0 ${h - ear - corner}`,
-    // Bottom-left convex corner
     `C 0 ${h - ear - corner * (1 - C)}, ${corner * (1 - C)} ${h - ear}, ${corner} ${h - ear}`,
-    // Bottom horizontal wall
     wallW > 0 ? `L ${w - ear} ${h - ear}` : '',
-    // Bottom concave flare out to bezel
     `C ${w - ear * (1 - C)} ${h - ear}, ${w} ${h - ear * (1 - C)}, ${w} ${h}`,
   ]
     .filter(Boolean)
