@@ -31,4 +31,6 @@ captures/
 # Node / Web
 node_modules/
 .next/
+*.tsbuildinfo
+
 
