@@ -102,6 +102,18 @@ export default function TopNotchIsland({
     };
   }, [controlledSlots]);
 
+  // Window broadcast listener for external HUD toggle actions (e.g. SiteHeader)
+  useEffect(() => {
+    const handleToggle = () => {
+      setIsExpanded((prev) => !prev);
+      setSelectedSlotIndex(null);
+    };
+    window.addEventListener('macdeck-toggle-notch', handleToggle);
+    return () => {
+      window.removeEventListener('macdeck-toggle-notch', handleToggle);
+    };
+  }, []);
+
   const broadcastSlots = (updated: DeckSlotItem[]) => {
     window.dispatchEvent(new CustomEvent('macdeck-slots-sync', { detail: updated }));
   };
