@@ -60,7 +60,7 @@ export default function SiteHeader({ className = '', onToggleNotch }: SiteHeader
         {/* Brand Mark: macdeck. in Poppins bold with a solid slate dot */}
         <div className="flex items-center gap-3">
           <a
-            href="#"
+            href="#top"
             className="flex items-baseline gap-0.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#101828] rounded-md px-1 py-0.5"
             aria-label="MacDeck Home"
           >
