@@ -64,6 +64,13 @@ export const DEFAULT_NOTCH_SLOTS: DeckSlotItem[] = [
   },
 ];
 
+const NAV_LINKS = [
+  { label: 'How it works', href: '#how-it-works' },
+  { label: 'Requirements', href: '#requirements' },
+  { label: 'Private by design', href: '#privacy' },
+  { label: 'Setup', href: '#setup' },
+];
+
 export default function TopNotchIsland({
   slots: controlledSlots,
   onClearSlot,
@@ -71,15 +78,19 @@ export default function TopNotchIsland({
   onResetDefaults,
   className = '',
 }: TopNotchIslandProps) {
-  const [internalSlots, setInternalSlots] = useState<DeckSlotItem[]>(controlledSlots ?? DEFAULT_NOTCH_SLOTS);
+  const [internalSlots, setInternalSlots] = useState<DeckSlotItem[]>(
+    controlledSlots ?? DEFAULT_NOTCH_SLOTS
+  );
   const activeSlots = controlledSlots ?? internalSlots;
 
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
   const [selectedSlotIndex, setSelectedSlotIndex] = useState<number | null>(null);
   const [statusNotification, setStatusNotification] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const notificationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const dragStartPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   // Sync internal slots if controlledSlots prop changes
   useEffect(() => {
@@ -102,11 +113,10 @@ export default function TopNotchIsland({
     };
   }, [controlledSlots]);
 
-  // Window broadcast listener for external HUD toggle actions (e.g. SiteHeader)
+  // Window listener for toggling notch open/close
   useEffect(() => {
     const handleToggle = () => {
       setIsExpanded((prev) => !prev);
-      setSelectedSlotIndex(null);
     };
     window.addEventListener('macdeck-toggle-notch', handleToggle);
     return () => {
@@ -159,27 +169,28 @@ export default function TopNotchIsland({
     };
   }, []);
 
-
   const handleToggleExpand = () => {
+    if (isDragging) return;
     setIsExpanded((prev) => !prev);
     setSelectedSlotIndex(null);
   };
 
   const handleClearSlot = (slot: DeckSlotItem, e: React.MouseEvent) => {
     e.stopPropagation();
+    const updated = activeSlots.map((s) =>
+      s.index === slot.index ? { ...s, label: '', bundleId: '', isEmpty: true } : s
+    );
+
     if (onClearSlot) {
       onClearSlot(slot);
     } else {
-      const updated = activeSlots.map((s) =>
-        s.index === slot.index ? { ...s, label: '', bundleId: '', isEmpty: true } : s
-      );
       setInternalSlots(updated);
-      broadcastSlots(updated);
     }
+    broadcastSlots(updated);
     showStatus(`Slot ${slot.index + 1} cleared`);
   };
 
-  const handleAssignApp = (app: (typeof AVAILABLE_MAC_APPS)[0]) => {
+  const handleSelectApp = (app: (typeof AVAILABLE_MAC_APPS)[0]) => {
     if (selectedSlotIndex === null) return;
     const targetIndex = selectedSlotIndex;
 
@@ -192,53 +203,37 @@ export default function TopNotchIsland({
       isEmpty: false,
     };
 
+    const updated = activeSlots.map((s) =>
+      s.index === targetIndex
+        ? {
+            ...s,
+            label: app.label,
+            bundleId: app.bundleId,
+            iconType: app.iconType,
+            isEmpty: false,
+          }
+        : s
+    );
+
     if (onAssignSlot) {
       onAssignSlot(targetIndex, updatedItem);
     } else {
-      const updated = [...activeSlots];
-      updated[targetIndex] = {
-        id: `app-${targetIndex + 1}`,
-        index: targetIndex,
-        label: app.label,
-        bundleId: app.bundleId,
-        iconType: app.iconType,
-        isEmpty: false,
-      };
       setInternalSlots(updated);
-      broadcastSlots(updated);
     }
-
+    broadcastSlots(updated);
     setSelectedSlotIndex(null);
-    showStatus(`Slot ${targetIndex + 1} set to ${app.label}`);
+    showStatus(`Slot ${targetIndex + 1}: ${app.label}`);
   };
 
-  const handleResetDefaults = () => {
+  const handleReset = () => {
     if (onResetDefaults) {
       onResetDefaults();
     } else {
       setInternalSlots(DEFAULT_NOTCH_SLOTS);
       broadcastSlots(DEFAULT_NOTCH_SLOTS);
     }
-    showStatus('Default 6-slot profile restored');
+    showStatus('Restored default 6 slots');
   };
-
-  // Ensure full 6-slot array for display
-  const displaySlots: DeckSlotItem[] = [];
-  for (let i = 0; i < 6; i++) {
-    const existing = activeSlots.find((s) => s.index === i);
-    if (existing) {
-      displaySlots.push(existing);
-    } else {
-      displaySlots.push({
-        id: `app-${i + 1}`,
-        index: i,
-        label: '',
-        bundleId: '',
-        iconType: 'terminal',
-        isEmpty: true,
-      });
-    }
-  }
 
   return (
     <div
@@ -246,6 +241,25 @@ export default function TopNotchIsland({
       className={`fixed top-0 left-1/2 -translate-x-1/2 z-50 select-none ${className}`}
     >
       <motion.div
+        drag
+        dragMomentum={false}
+        dragElastic={0.12}
+        onDragStart={(_e, info) => {
+          dragStartPosRef.current = { x: info.point.x, y: info.point.y };
+          setIsDragging(true);
+        }}
+        onDragEnd={(_e, info) => {
+          const dist = Math.hypot(
+            info.point.x - dragStartPosRef.current.x,
+            info.point.y - dragStartPosRef.current.y
+          );
+          // If moved less than 5px, treat as a click rather than drag
+          if (dist < 5) {
+            setIsDragging(false);
+          } else {
+            setTimeout(() => setIsDragging(false), 50);
+          }
+        }}
         layout
         transition={{
           type: 'spring',
@@ -253,15 +267,15 @@ export default function TopNotchIsland({
           stiffness: 340,
           mass: 0.8,
         }}
-        className={`bg-black text-white shadow-2xl overflow-hidden border-x border-b border-white/15 ${
+        className={`bg-black text-white shadow-2xl overflow-hidden border-x border-b border-white/15 cursor-grab active:cursor-grabbing ${
           isExpanded
-            ? 'w-[540px] max-w-[95vw] rounded-b-[22px] bg-[#0c1017]/95 backdrop-blur-2xl'
-            : 'w-[184px] h-[32px] rounded-b-[16px] cursor-pointer hover:bg-[#11141d] active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400'
+            ? 'w-[560px] max-w-[96vw] rounded-b-[24px] bg-[#0c1017]/95 backdrop-blur-2xl'
+            : 'w-[230px] h-[34px] rounded-b-[18px] hover:bg-[#11141d]'
         }`}
         role={!isExpanded ? 'button' : undefined}
         tabIndex={!isExpanded ? 0 : undefined}
         aria-expanded={isExpanded}
-        aria-label="Toggle NotchDeck HUD"
+        aria-label="Notch Navigation and Stream Deck HUD"
         onKeyDown={(e) => {
           if (!isExpanded && (e.key === 'Enter' || e.key === ' ')) {
             e.preventDefault();
@@ -270,145 +284,169 @@ export default function TopNotchIsland({
         }}
         onClick={!isExpanded ? handleToggleExpand : undefined}
       >
-        {/* Collapsed State */}
+        {/* Collapsed State: Hardware Notch with Navigation & Drag Grip */}
         {!isExpanded && (
           <div className="w-full h-full px-3 flex items-center justify-between">
-            {/* Camera Lens Indicator */}
-            <div
-              className="w-2.5 h-2.5 rounded-full bg-[#111622] border border-[#232b3e] flex items-center justify-center shrink-0"
-              title="Built-in FaceTime HD Camera"
-            >
-              <div className="w-1 h-1 rounded-full bg-[#050810]" />
+            {/* Left: Drag Grip Handle */}
+            <div className="flex items-center gap-1.5" title="Drag notch to reposition anywhere">
+              <div className="flex flex-col gap-0.5 opacity-40 hover:opacity-100 transition-opacity">
+                <span className="w-1 h-1 rounded-full bg-white/70" />
+                <span className="w-1 h-1 rounded-full bg-white/70" />
+              </div>
+              <div
+                className="w-2.5 h-2.5 rounded-full bg-[#111622] border border-[#232b3e] flex items-center justify-center shrink-0"
+                title="FaceTime Camera Cutout"
+              >
+                <div className="w-1 h-1 rounded-full bg-[#1b253b] opacity-80" />
+              </div>
             </div>
 
-            {/* Status text */}
-            <span className="text-[10px] font-medium tracking-tight text-white/90">
-              MacDeck: USB Active
+            {/* Center: Brand & Navigation Indicator */}
+            <span className="text-[11px] font-semibold text-white/90 tracking-tight">
+              macdeck <span className="text-white/40 text-[9px] font-mono">menu</span>
             </span>
 
-            {/* Solid Connection Dot */}
-            <div
-              className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"
-              title="Reverse ADB Socket connected (127.0.0.1:8765)"
-            />
+            {/* Right: Quick Action Pill */}
+            <div className="flex items-center gap-1 bg-white/10 px-1.5 py-0.5 rounded-full border border-white/10 text-[9.5px] font-bold text-white/90">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span>HUD</span>
+            </div>
           </div>
         )}
 
-        {/* Expanded State: 6-Slot NotchDeck HUD */}
+        {/* Expanded State: Full Navigation + 6-Slot Liquid Glass HUD */}
         {isExpanded && (
-          <div className="flex flex-col">
-            {/* Header bar */}
-            <div className="h-10 px-4 flex items-center justify-between border-b border-white/10">
+          <div className="p-4 sm:p-5 flex flex-col gap-4">
+            {/* Header: Draggable Grip Bar & Primary Navigation */}
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-[#111622] border border-[#232b3e] flex items-center justify-center shrink-0">
-                  <div className="w-1 h-1 rounded-full bg-[#050810]" />
+                {/* Drag Handle Bar */}
+                <div
+                  className="flex items-center gap-1 py-1 px-1.5 rounded bg-white/10 text-white/60 cursor-grab active:cursor-grabbing text-[10px] font-mono"
+                  title="Drag anywhere"
+                >
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="9" cy="6" r="1.5" fill="currentColor" />
+                    <circle cx="15" cy="6" r="1.5" fill="currentColor" />
+                    <circle cx="9" cy="12" r="1.5" fill="currentColor" />
+                    <circle cx="15" cy="12" r="1.5" fill="currentColor" />
+                    <circle cx="9" cy="18" r="1.5" fill="currentColor" />
+                    <circle cx="15" cy="18" r="1.5" fill="currentColor" />
+                  </svg>
+                  <span className="text-[9px]">Drag</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-semibold text-white tracking-tight">
-                    NotchDeck HUD
-                  </span>
-                  <span className="text-[9.5px] font-mono text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/40">
-                    127.0.0.1:8765
-                  </span>
+
+                {/* Device Status */}
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-white/90">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <span>MacDeck</span>
                 </div>
               </div>
 
-              {/* Status Message or Controls */}
-              <div className="flex items-center gap-1.5">
-                {statusNotification && (
-                  <span className="text-[10px] text-white/60 font-mono pr-1 truncate max-w-[140px]">
-                    {statusNotification}
-                  </span>
-                )}
+              {/* Integrated Navigation Links */}
+              <nav className="flex items-center gap-3 sm:gap-4 text-xs font-medium" aria-label="Notch Navigation">
+                {NAV_LINKS.map((link) => (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setIsExpanded(false)}
+                    className="text-white/70 hover:text-white transition-colors"
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </nav>
 
-                {/* Reset button */}
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => setIsExpanded(false)}
+                className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 transition-colors"
+                aria-label="Collapse Notch HUD"
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            {/* 6-Slot App Configurator Grid (3x2) */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-semibold text-white/50 tracking-wider uppercase font-mono">
+                  Stream Deck Slots (Synced to Phone)
+                </span>
                 <button
                   type="button"
-                  onClick={handleResetDefaults}
-                  title="Reset slots to defaults"
-                  className="w-6 h-6 rounded flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                  onClick={handleReset}
+                  className="text-[10px] text-white/60 hover:text-white transition-colors font-mono"
                 >
-                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                    <path d="M3 3v5h5" />
-                  </svg>
-                </button>
-
-                {/* Collapse button */}
-                <button
-                  type="button"
-                  onClick={handleToggleExpand}
-                  title="Collapse Notch HUD"
-                  className="w-6 h-6 rounded flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-colors"
-                >
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="18 15 12 9 6 15" />
-                  </svg>
+                  Reset Defaults
                 </button>
               </div>
-            </div>
 
-            {/* Sub-header profile label */}
-            <div className="px-4 py-1.5 flex items-center justify-between text-[9px] font-mono text-white/40">
-              <span>PROFILE: STREAM_DECK_6SLOT</span>
-              <span>SYNCHRONIZED WITH ANDROID</span>
-            </div>
+              <div className="grid grid-cols-3 gap-2.5">
+                {activeSlots.slice(0, 6).map((slot) => {
+                  const isEmpty = slot.isEmpty;
 
-            {/* 3×2 Slot Grid */}
-            <div className="px-4 pb-3.5 pt-1 grid grid-cols-3 gap-2">
-              {displaySlots.map((slot) => {
-                const isEmpty = slot.isEmpty || !slot.label;
-                return (
-                  <div key={slot.id || `notch-slot-${slot.index}`} className="relative group">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedSlotIndex(slot.index);
-                      }}
-                      className={`w-full h-[68px] rounded-[12px] p-1.5 flex flex-col items-center justify-center transition-all ${
-                        isEmpty
-                          ? 'bg-white/[0.03] hover:bg-white/[0.08] border border-dashed border-white/20 hover:border-cyan-400/60'
-                          : 'bg-white/[0.05] hover:bg-white/[0.10] active:scale-[0.98] border border-white/15 hover:border-white/30 shadow-md'
-                      }`}
-                    >
-                      {isEmpty ? (
-                        <div className="flex flex-col items-center justify-center gap-1">
-                          <svg className="w-3.5 h-3.5 text-white/40 group-hover:text-cyan-400 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  if (isEmpty) {
+                    return (
+                      <button
+                        key={slot.index}
+                        type="button"
+                        onClick={() => setSelectedSlotIndex(slot.index)}
+                        className="h-16 rounded-[14px] border border-dashed border-white/20 bg-white/[0.02] hover:bg-white/[0.08] hover:border-cyan-400/60 transition-all flex flex-col items-center justify-center gap-1 group text-center cursor-pointer"
+                      >
+                        <div className="w-5 h-5 rounded-full border border-white/40 flex items-center justify-center text-white/60 group-hover:border-cyan-400 group-hover:text-cyan-300">
+                          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                             <line x1="12" y1="5" x2="12" y2="19" />
                             <line x1="5" y1="12" x2="19" y2="12" />
                           </svg>
-                          <span className="text-[9px] font-medium text-white/40 group-hover:text-white/80 transition-colors">
-                            Slot {slot.index + 1}
-                          </span>
                         </div>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center gap-1 w-full">
-                          <div className="w-7 h-7 rounded-[6px] overflow-hidden flex items-center justify-center shrink-0">
-                            <AppIconRenderer iconType={slot.iconType} label={slot.label} />
-                          </div>
-                          <span className="text-[10px] font-medium text-white/90 group-hover:text-white truncate max-w-[110px] tracking-tight">
-                            {slot.label}
-                          </span>
-                        </div>
-                      )}
-                    </button>
+                        <span className="text-[10px] font-mono text-white/50 group-hover:text-white/80">
+                          Slot {slot.index + 1}
+                        </span>
+                      </button>
+                    );
+                  }
 
-                    {/* Clear Button (-) on hover */}
-                    {!isEmpty && (
+                  return (
+                    <div
+                      key={slot.index}
+                      className="relative h-16 rounded-[14px] border border-white/15 bg-white/[0.05] p-2 flex items-center gap-2.5 group hover:bg-white/[0.09] transition-all"
+                    >
+                      {/* App Icon */}
+                      <div className="w-9 h-9 rounded-[8px] overflow-hidden shrink-0">
+                        <AppIconRenderer iconType={slot.iconType} label={slot.label} />
+                      </div>
+
+                      {/* App Details */}
+                      <div className="flex-1 min-w-0 flex flex-col">
+                        <span className="text-xs font-semibold text-white/95 truncate">
+                          {slot.label}
+                        </span>
+                        <span className="text-[9.5px] font-mono text-white/40">
+                          Slot {slot.index + 1}
+                        </span>
+                      </div>
+
+                      {/* Remove / Clear Badge */}
                       <button
                         type="button"
                         onClick={(e) => handleClearSlot(slot, e)}
-                        title={`Clear Slot ${slot.index + 1}`}
-                        className="absolute top-1 right-1 w-4 h-4 rounded-full bg-[#f23f43] text-white flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 active:scale-95 z-10"
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#181D2A] border border-rose-500/80 text-rose-300 hover:bg-rose-600 hover:text-white flex items-center justify-center shadow-md transition-all cursor-pointer opacity-90 group-hover:opacity-100"
+                        title="Clear Slot"
+                        aria-label={`Clear slot ${slot.index + 1}`}
                       >
-                        <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                        <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                           <line x1="5" y1="12" x2="19" y2="12" />
                         </svg>
                       </button>
-                    )}
-                  </div>
-                );
-              })}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             {/* App Assignment Drawer */}
@@ -418,34 +456,33 @@ export default function TopNotchIsland({
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.18 }}
-                  className="mx-4 mb-3 p-2.5 rounded-[12px] bg-[#141924] border border-white/20 shadow-xl overflow-hidden"
+                  className="pt-2 border-t border-white/10 flex flex-col gap-2"
                 >
-                  <div className="flex items-center justify-between pb-2 border-b border-white/10">
-                    <span className="text-[10.5px] font-medium text-white">
-                      Assign to Slot {selectedSlotIndex + 1}
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono text-cyan-300">
+                      Select App for Slot {selectedSlotIndex + 1}:
                     </span>
                     <button
                       type="button"
                       onClick={() => setSelectedSlotIndex(null)}
-                      className="text-white/50 hover:text-white text-[11px] px-1"
+                      className="text-[10px] text-white/40 hover:text-white"
                     >
-                      Close
+                      Cancel
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-4 gap-1.5 pt-2">
+                  <div className="grid grid-cols-4 gap-1.5">
                     {AVAILABLE_MAC_APPS.map((app) => (
                       <button
-                        key={`island-app-${app.bundleId}`}
+                        key={app.bundleId}
                         type="button"
-                        onClick={() => handleAssignApp(app)}
-                        className="p-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.12] border border-white/10 flex flex-col items-center gap-1 transition-all text-center group"
+                        onClick={() => handleSelectApp(app)}
+                        className="flex items-center gap-1.5 p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.12] border border-white/10 transition-colors text-left cursor-pointer"
                       >
-                        <div className="w-6 h-6 rounded-[5px] overflow-hidden shrink-0">
+                        <div className="w-5 h-5 rounded overflow-hidden shrink-0">
                           <AppIconRenderer iconType={app.iconType} label={app.label} />
                         </div>
-                        <span className="text-[9px] font-medium text-white/80 group-hover:text-white truncate max-w-full">
+                        <span className="text-[10.5px] font-medium text-white/90 truncate">
                           {app.label}
                         </span>
                       </button>
@@ -454,6 +491,13 @@ export default function TopNotchIsland({
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Status Feedback Toast */}
+            {statusNotification && (
+              <div className="text-center text-[10px] font-mono text-cyan-300 bg-cyan-950/40 border border-cyan-800/40 rounded-full py-1 px-3 self-center">
+                {statusNotification}
+              </div>
+            )}
           </div>
         )}
       </motion.div>

@@ -1,42 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
-import { motion, useScroll, useSpring } from 'motion/react';
-import { HugeiconsIcon } from '@hugeicons/react';
-import {
-  LaptopMinimalIcon,
-  Copy01Icon,
-  Tick01Icon,
-  ArrowRight01Icon,
-  ComputerTerminal01Icon,
-} from '@hugeicons/core-free-icons';
-
+import { useState } from 'react';
 import TopNotchIsland from './components/TopNotchIsland';
-import SiteHeader from './components/SiteHeader';
-import DualInteractiveStage from './components/DualInteractiveStage';
-import HowItWorks from './components/HowItWorks';
-import ArchitectureGrid from './components/ArchitectureGrid';
-import TerminalCommands from './components/TerminalCommands';
-import FaqAccordion from './components/FaqAccordion';
-import SiteFooter from './components/SiteFooter';
+import FigureShowcase from './components/FigureShowcase';
 
 export default function HomePage() {
-  const [copiedSnippet, setCopiedSnippet] = useState(false);
+  const [copiedCmd, setCopiedCmd] = useState<string | null>(null);
 
-  // Spring-animated scroll progress bar
-  const { scrollYProgress } = useScroll();
-  const scaleX = useSpring(scrollYProgress, {
-    stiffness: 120,
-    damping: 30,
-    restDelta: 0.001,
-  });
-
-  const handleCopySnippet = async () => {
-    const cmd = './scripts/run_notchdeck.sh';
+  const handleCopy = async (cmd: string) => {
     try {
       await navigator.clipboard.writeText(cmd);
-      setCopiedSnippet(true);
-      setTimeout(() => setCopiedSnippet(false), 2000);
+      setCopiedCmd(cmd);
+      setTimeout(() => setCopiedCmd(null), 2000);
     } catch {
       const textarea = document.createElement('textarea');
       textarea.value = cmd;
@@ -44,8 +19,8 @@ export default function HomePage() {
       textarea.select();
       document.execCommand('copy');
       document.body.removeChild(textarea);
-      setCopiedSnippet(true);
-      setTimeout(() => setCopiedSnippet(false), 2000);
+      setCopiedCmd(cmd);
+      setTimeout(() => setCopiedCmd(null), 2000);
     }
   };
 
@@ -54,170 +29,278 @@ export default function HomePage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#f9fafd] text-[#101828] flex flex-col">
-      {/* Spring-animated scroll progress bar across the entire top edge */}
-      <motion.div
-        className="fixed top-0 left-0 right-0 h-[2px] bg-[#101828] origin-left z-[60] pointer-events-none"
-        style={{ scaleX }}
-        aria-hidden="true"
-      />
-
-      {/* Top Notch HUD Island (Fixed at top-center) */}
+    <div className="relative min-h-screen bg-[#f9fafd] text-[#101828]">
+      {/* Draggable Top Notch Navigation & HUD Island */}
       <TopNotchIsland />
 
-      {/* Site Header & Navigation */}
-      <SiteHeader onToggleNotch={handleToggleNotch} />
+      {/* Topbar: Wordmark & Notch Trigger */}
+      <header className="topbar" aria-label="Brand Header">
+        <div className="brand">
+          <a className="wordmark" href="/">
+            <svg
+              className="w-5 h-5 text-[#101828]"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="2" y="3" width="20" height="14" rx="2" />
+              <line x1="8" y1="21" x2="16" y2="21" />
+              <line x1="12" y1="17" x2="12" y2="21" />
+            </svg>
+            <span>macdeck</span>
+          </a>
+          <span className="os">macOS + Android</span>
+          <button
+            type="button"
+            onClick={handleToggleNotch}
+            className="pill"
+            title="Open Notch Navigation & Stream Deck HUD"
+            aria-label="Open Notch Navigation"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span>Notch menu</span>
+          </button>
+        </div>
+      </header>
 
-      <main className="flex-1 flex flex-col" id="main-content">
-        {/* Hero Section */}
-        <section
-          className="pt-12 sm:pt-16 lg:pt-20 pb-10 border-b border-[#e5e9f2] bg-[#f9fafd]"
-          aria-label="Overview & Hero"
-        >
-          <div className="shell flex flex-col items-center text-center">
-            {/* Headline - Strictly No Pill Eyebrows */}
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-[#101828] leading-[1.1] max-w-4xl mb-6">
-              Desktop Control Surface.
-              <span className="block sm:inline text-[#344054]">
-                {' '}
-                Engineered for Mac and Android.
-              </span>
-            </h1>
+      {/* Main Single-Column Stage */}
+      <main className="stage" id="main-content">
+        {/* Intro */}
+        <div className="intro">
+          <h1>Your phone is now your stream deck.</h1>
+          <p className="lede">
+            Zero-latency desk control over USB. Configure slots live from the notch you already
+            have.
+          </p>
+        </div>
 
-            {/* Subtitle Description */}
-            <p className="text-base sm:text-lg lg:text-xl text-[#475467] leading-relaxed max-w-3xl mb-8">
-              Turn your Android phone into a high-performance touchscreen stream deck with physical
-              tactile response. Configure slots in real-time with the native macOS NotchDeck liquid
-              glass HUD over hardware USB loopback.
-            </p>
+        {/* Action Button & Platform Note */}
+        <div className="actions">
+          <a className="button" href="#setup">
+            <span>Get MacDeck</span>
+            <span className="amount">v1.0</span>
+          </a>
+          <p className="note">For macOS 14+ and Android 10+ • Local loopback over USB</p>
+        </div>
 
-            {/* Quick Action Buttons */}
-            <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mb-8">
-              <a
-                href="#live-demo"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#101828] hover:bg-[#1d2939] text-white text-sm font-semibold shadow-xs active:scale-[0.98] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#101828] focus-visible:ring-offset-2"
-              >
-                <span>Explore Live Demo</span>
-                <HugeiconsIcon icon={ArrowRight01Icon} size={15} className="text-white/80" />
-              </a>
+        {/* Breakout Figure Showcase: MacBook Notch HUD & Android Phone Deck */}
+        <FigureShowcase />
 
-              <button
-                type="button"
-                onClick={handleToggleNotch}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#dbe2ea] bg-white hover:bg-[#f2f4f7] hover:border-[#b9c6d5] text-[#101828] text-sm font-mono font-medium shadow-xs active:scale-[0.98] transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#101828]"
-              >
-                <HugeiconsIcon icon={LaptopMinimalIcon} size={16} className="text-[#475467]" />
-                <span>Toggle Notch HUD</span>
-              </button>
-
-              <a
-                href="#terminal-commands"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#dbe2ea] bg-white hover:bg-[#f2f4f7] hover:border-[#b9c6d5] text-[#101828] text-sm font-mono font-medium shadow-xs active:scale-[0.98] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#101828]"
-              >
-                <HugeiconsIcon icon={ComputerTerminal01Icon} size={16} className="text-[#475467]" />
-                <span>Terminal Quickstart</span>
-              </a>
-            </div>
-
-            {/* Copy Command Snippet */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-1.5 bg-white border border-[#dbe2ea] rounded-xl shadow-[0_1px_3px_rgba(16,24,40,0.05)] w-full max-w-xl mb-12">
-              <div className="flex items-center gap-2 px-3 py-1.5 text-xs font-mono text-[#344054] flex-1 overflow-x-auto text-left">
-                <span className="text-[#98a2b3] select-none">$</span>
-                <span className="font-semibold text-[#101828]">./scripts/run_notchdeck.sh</span>
-              </div>
-              <button
-                type="button"
-                onClick={handleCopySnippet}
-                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#f2f4f7] hover:bg-[#e4e7ec] active:bg-[#d0d5dd] text-xs font-mono font-medium text-[#101828] transition-colors cursor-pointer shrink-0"
-                aria-label="Copy run notchdeck command"
-              >
-                <HugeiconsIcon
-                  icon={copiedSnippet ? Tick01Icon : Copy01Icon}
-                  size={14}
-                  className={copiedSnippet ? 'text-[#039855]' : 'text-[#475467]'}
-                />
-                <span>{copiedSnippet ? 'Copied' : 'Copy'}</span>
-              </button>
-            </div>
-
-            {/* Hardware Capability Metrics Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 w-full max-w-4xl text-left">
-              <div className="bg-white border border-[#dbe2ea] rounded-xl p-3.5 sm:p-4 shadow-[0_1px_2px_rgba(16,24,40,0.03)]">
-                <div className="font-mono text-[10px] uppercase text-[#98a2b3] font-semibold mb-1">
-                  Loopback Transit
+        {/* Stack of Definition List Cards */}
+        <div className="stack" id="stack">
+          <div className="stack-scroll" id="stackScroll">
+            {/* How it works */}
+            <section className="card" id="how-it-works" aria-labelledby="how-it-works-title">
+              <h2 id="how-it-works-title">How it works</h2>
+              <dl>
+                <div className="row">
+                  <dt>USB reverse tunnel</dt>
+                  <dd>
+                    A single Type-C cable establishes an ADB loopback tunnel on port 8765. Zero WiFi
+                    congestion, zero Bluetooth pairing dropouts, sub-millisecond response.
+                  </dd>
                 </div>
-                <div className="text-base sm:text-lg font-bold font-mono text-[#101828] mb-0.5">
-                  &lt; 0.8ms
+                <div className="row">
+                  <dt>Fluid Notch HUD</dt>
+                  <dd>
+                    Click or drag the MacBook camera notch to reveal the 6-slot liquid glass
+                    configurator. Reorder, assign, or clear apps instantly with native AppKit
+                    performance.
+                  </dd>
                 </div>
-                <div className="text-[11px] text-[#475467]">USB 3.1 Type-C Bus</div>
-              </div>
+                <div className="row">
+                  <dt>Tactile phone grid</dt>
+                  <dd>
+                    Your Android screen mirrors the 6 slots as tactile squircles with physical
+                    feedback. Instant sub-16ms actuation launches macOS apps via native
+                    NSWorkspace.
+                  </dd>
+                </div>
+                <div className="row">
+                  <dt>Bidirectional sync</dt>
+                  <dd>
+                    Changes made in the macOS Notch panel reflect on the phone in real time over the
+                    loopback protocol. No configuration files to reload or restart.
+                  </dd>
+                </div>
+              </dl>
+            </section>
 
-              <div className="bg-white border border-[#dbe2ea] rounded-xl p-3.5 sm:p-4 shadow-[0_1px_2px_rgba(16,24,40,0.03)]">
-                <div className="font-mono text-[10px] uppercase text-[#98a2b3] font-semibold mb-1">
-                  Security Model
+            {/* Setup & Commands */}
+            <section className="card" id="setup" aria-labelledby="setup-title">
+              <h2 id="setup-title">Setup &amp; Commands</h2>
+              <dl>
+                <div className="row">
+                  <dt>1. Start Mac host</dt>
+                  <dd className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <span>Run the local loopback WebSocket server on port 8765:</span>
+                    <button
+                      type="button"
+                      onClick={() => handleCopy('./scripts/run_mac.sh')}
+                      className="cursor-pointer text-left"
+                      title="Click to copy command"
+                    >
+                      <code className="inline-cmd">
+                        ./scripts/run_mac.sh
+                        <span className="text-[10px] text-[#667085] ml-1">
+                          {copiedCmd === './scripts/run_mac.sh' ? 'Copied' : 'Copy'}
+                        </span>
+                      </code>
+                    </button>
+                  </dd>
                 </div>
-                <div className="text-base sm:text-lg font-bold font-mono text-[#101828] mb-0.5">
-                  Sandboxed
-                </div>
-                <div className="text-[11px] text-[#475467]">Abstract Action IDs</div>
-              </div>
 
-              <div className="bg-white border border-[#dbe2ea] rounded-xl p-3.5 sm:p-4 shadow-[0_1px_2px_rgba(16,24,40,0.03)]">
-                <div className="font-mono text-[10px] uppercase text-[#98a2b3] font-semibold mb-1">
-                  macOS Integration
+                <div className="row">
+                  <dt>2. Launch Notch HUD</dt>
+                  <dd className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <span>Attach the liquid glass panel to your MacBook camera notch:</span>
+                    <button
+                      type="button"
+                      onClick={() => handleCopy('./scripts/run_notchdeck.sh')}
+                      className="cursor-pointer text-left"
+                      title="Click to copy command"
+                    >
+                      <code className="inline-cmd">
+                        ./scripts/run_notchdeck.sh
+                        <span className="text-[10px] text-[#667085] ml-1">
+                          {copiedCmd === './scripts/run_notchdeck.sh' ? 'Copied' : 'Copy'}
+                        </span>
+                      </code>
+                    </button>
+                  </dd>
                 </div>
-                <div className="text-base sm:text-lg font-bold font-mono text-[#101828] mb-0.5">
-                  Liquid Glass
-                </div>
-                <div className="text-[11px] text-[#475467]">AppKit Notch Panel</div>
-              </div>
 
-              <div className="bg-white border border-[#dbe2ea] rounded-xl p-3.5 sm:p-4 shadow-[0_1px_2px_rgba(16,24,40,0.03)]">
-                <div className="font-mono text-[10px] uppercase text-[#98a2b3] font-semibold mb-1">
-                  Local Autonomy
+                <div className="row">
+                  <dt>3. Connect USB</dt>
+                  <dd className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <span>Reverse the ADB port to route local traffic between devices:</span>
+                    <button
+                      type="button"
+                      onClick={() => handleCopy('./scripts/usb/connect.sh')}
+                      className="cursor-pointer text-left"
+                      title="Click to copy command"
+                    >
+                      <code className="inline-cmd">
+                        ./scripts/usb/connect.sh
+                        <span className="text-[10px] text-[#667085] ml-1">
+                          {copiedCmd === './scripts/usb/connect.sh' ? 'Copied' : 'Copy'}
+                        </span>
+                      </code>
+                    </button>
+                  </dd>
                 </div>
-                <div className="text-base sm:text-lg font-bold font-mono text-[#101828] mb-0.5">
-                  100% Offline
+
+                <div className="row">
+                  <dt>4. Install Android</dt>
+                  <dd className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <span>Deploy the Jetpack Compose client to your device:</span>
+                    <button
+                      type="button"
+                      onClick={() => handleCopy('./scripts/install_android.sh')}
+                      className="cursor-pointer text-left"
+                      title="Click to copy command"
+                    >
+                      <code className="inline-cmd">
+                        ./scripts/install_android.sh
+                        <span className="text-[10px] text-[#667085] ml-1">
+                          {copiedCmd === './scripts/install_android.sh' ? 'Copied' : 'Copy'}
+                        </span>
+                      </code>
+                    </button>
+                  </dd>
                 </div>
-                <div className="text-[11px] text-[#475467]">Zero Cloud Relays</div>
-              </div>
-            </div>
+              </dl>
+            </section>
+
+            {/* Requirements */}
+            <section className="card" id="requirements" aria-labelledby="requirements-title">
+              <h2 id="requirements-title">Requirements</h2>
+              <dl>
+                <div className="row">
+                  <dt>macOS</dt>
+                  <dd>macOS 14 Sonoma or macOS 15 Sequoia. Apple Silicon or Intel.</dd>
+                </div>
+                <div className="row">
+                  <dt>Android</dt>
+                  <dd>
+                    Android 10 (API 29) or higher with USB debugging enabled. Tested on Pixel,
+                    Samsung Galaxy, and OnePlus.
+                  </dd>
+                </div>
+                <div className="row">
+                  <dt>Connection</dt>
+                  <dd>
+                    Standard USB-C to USB-C or USB-A to USB-C cable. No internet access or cloud
+                    relay required.
+                  </dd>
+                </div>
+                <div className="row">
+                  <dt>Toolchain</dt>
+                  <dd>
+                    Swift 5.9+ for the AppKit notch client, Python 3.10+ for the host server,
+                    Android SDK 34+ for the Compose app.
+                  </dd>
+                </div>
+              </dl>
+            </section>
+
+            {/* Private by design */}
+            <section className="card" id="privacy" aria-labelledby="privacy-title">
+              <h2 id="privacy-title">Private by design</h2>
+              <dl>
+                <div className="row">
+                  <dt>100% Offline</dt>
+                  <dd>
+                    All telemetry stays strictly on the hardware loopback (127.0.0.1). Zero outbound
+                    network calls, zero analytics tracking.
+                  </dd>
+                </div>
+                <div className="row">
+                  <dt>Sandboxed actions</dt>
+                  <dd>
+                    The Android deck transmits only abstract token IDs (such as app-1). Arbitrary
+                    shell commands cannot be injected over the wire.
+                  </dd>
+                </div>
+                <div className="row">
+                  <dt>No account</dt>
+                  <dd>No cloud login, no registration, no subscription. Free and open source.</dd>
+                </div>
+                <div className="row">
+                  <dt>Open source</dt>
+                  <dd>
+                    Full source code for the Swift AppKit Notch, Python host server, and Kotlin
+                    Compose client is auditable and open.
+                  </dd>
+                </div>
+              </dl>
+            </section>
+
+            {/* Clean Bendy-Style Footer */}
+            <footer>
+              <span>© 2026 MacDeck</span>
+              <nav className="links" aria-label="Footer Navigation">
+                <a href="#how-it-works">How it works</a>
+                <a href="#setup">Setup</a>
+                <a href="#requirements">Requirements</a>
+                <a href="#privacy">Privacy</a>
+                <a
+                  href="https://github.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Source code on GitHub (opens in a new tab)"
+                >
+                  Source
+                </a>
+              </nav>
+            </footer>
           </div>
-        </section>
-
-        {/* Live Interactive Dual Stage Section */}
-        <section id="live-demo" className="scroll-mt-16 bg-[#f9fafd] border-b border-[#e5e9f2]">
-          <div className="shell pt-12 pb-6">
-            <div className="max-w-3xl mb-4">
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-[#101828] mb-3">
-                Live Interactive Stage
-              </h2>
-              <p className="text-base sm:text-lg text-[#475467] leading-relaxed">
-                Interact with the phone touchscreen and desktop notch HUD below. Configuration
-                changes propagate bi-directionally over the simulated USB packet telemetry bus.
-              </p>
-            </div>
-          </div>
-          <DualInteractiveStage />
-        </section>
-
-        {/* Workflow Section (Step 1, Step 2, Step 3) */}
-        <div id="workflow" className="scroll-mt-16" />
-        <HowItWorks />
-
-        {/* System Architecture Section */}
-        <ArchitectureGrid />
-
-        {/* Terminal Commands & Quickstart Section */}
-        <div id="commands" className="scroll-mt-16" />
-        <TerminalCommands />
-
-        {/* Frequently Asked Questions */}
-        <FaqAccordion />
+        </div>
       </main>
-
-      {/* Site Footer */}
-      <SiteFooter />
     </div>
   );
 }

@@ -367,7 +367,7 @@ export default function DualInteractiveStage({
 
           {/* Central Physical Bridge Wire (Visible on Desktop) */}
           <div className="hidden xl:flex flex-col items-center justify-center py-10 w-16">
-            <div className="w-[2px] h-20 bg-gradient-to-b from-[#222a3a] via-cyan-500 to-[#222a3a] relative overflow-hidden">
+            <div className="w-[2px] h-20 bg-[#222a3a] relative overflow-hidden">
               {isWireActive && (
                 <motion.div
                   initial={{ y: activePacket?.direction === 'phone-to-mac' ? -20 : 80 }}
@@ -383,7 +383,7 @@ export default function DualInteractiveStage({
                 <polyline points="7 6 12 11 17 6" />
               </svg>
             </div>
-            <div className="w-[2px] h-20 bg-gradient-to-b from-[#222a3a] via-emerald-500 to-[#222a3a]" />
+            <div className="w-[2px] h-20 bg-[#222a3a]" />
           </div>
 
           {/* Right Device: macOS Desktop Mockup (Host + NotchDeck HUD) */}
