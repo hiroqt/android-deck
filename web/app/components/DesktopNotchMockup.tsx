@@ -271,6 +271,14 @@ export default function DesktopNotchMockup({
     };
   }, [lastActionExecution]);
 
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+    };
+  }, []);
+
+
   const triggerWireSync = (msg: string) => {
     setSyncStatus(msg);
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
@@ -437,7 +445,7 @@ export default function DesktopNotchMockup({
               }}
               className={`relative bg-black shadow-2xl transition-all border-x border-b border-white/10 ${
                 isExpanded
-                  ? 'w-[476px] rounded-b-[22px] pb-4 bg-[#0a0c13]/95 backdrop-blur-2xl'
+                  ? 'w-[476px] max-w-[calc(100%-16px)] rounded-b-[22px] pb-4 bg-[#0a0c13]/95 backdrop-blur-2xl'
                   : 'w-[194px] h-[31px] rounded-b-[16px] px-3 flex items-center justify-between cursor-pointer hover:bg-[#11131a]'
               }`}
               onClick={!isExpanded ? handleToggleExpand : undefined}
@@ -709,6 +717,7 @@ export default function DesktopNotchMockup({
                   {/* Dismiss close */}
                   <button
                     type="button"
+                    aria-label="Dismiss notification"
                     onClick={() => setActiveToast(null)}
                     className="text-white/40 hover:text-white"
                   >
