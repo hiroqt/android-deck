@@ -12,10 +12,30 @@ interface TopNotchIslandProps {
 }
 
 const NAV_ITEMS = [
-  { id: 'how-it-works', label: 'How it works', href: '#how-it-works' },
-  { id: 'setup', label: 'Setup & Commands', href: '#setup' },
-  { id: 'requirements', label: 'Requirements', href: '#requirements' },
-  { id: 'privacy', label: 'Private by design', href: '#privacy' },
+  {
+    id: 'how-it-works',
+    title: 'How it works',
+    subtitle: 'USB reverse tunnel, fluid notch HUD, tactile surface',
+    href: '#how-it-works',
+  },
+  {
+    id: 'setup',
+    title: 'Setup & Commands',
+    subtitle: 'Terminal host server, Notch HUD, ADB loopback',
+    href: '#setup',
+  },
+  {
+    id: 'requirements',
+    title: 'Requirements',
+    subtitle: 'macOS 14+ Sonoma/Sequoia, Android 10+ (API 29+)',
+    href: '#requirements',
+  },
+  {
+    id: 'privacy',
+    title: 'Private by design',
+    subtitle: '100% offline, hardware loopback, sandboxed token IDs',
+    href: '#privacy',
+  },
 ];
 
 export default function TopNotchIsland({
@@ -23,47 +43,49 @@ export default function TopNotchIsland({
   defaultPosition = 'top',
 }: TopNotchIslandProps) {
   const [dockPosition, setDockPosition] = useState<DockPosition>(defaultPosition);
-  const [dragProximity, setDragProximity] = useState<DockPosition | null>(null);
-  const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [activeSection, setActiveSection] = useState<string>('how-it-works');
+  const [isExpanded, setIsExpanded] = useState<boolean>(false);
+  const [isHovered, setIsHovered] = useState<boolean>(false);
 
-  // Elastic liquid stretch state
+  // Liquid Pull / Stretch State
   const [stretchDistance, setStretchDistance] = useState<number>(0);
   const [lateralOffset, setLateralOffset] = useState<number>(0);
-  const [isDetached, setIsDetached] = useState<boolean>(false);
+  const [isPulling, setIsPulling] = useState<boolean>(false);
+  const [dragProximity, setDragProximity] = useState<DockPosition | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const dragStartPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const pointerStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const hasMovedRef = useRef<boolean>(false);
 
-  // Scroll spy to highlight current active section
+  // Close when pressing Escape or clicking outside
   useEffect(() => {
-    const handleScroll = () => {
-      const scrollPos = window.scrollY + 220;
-      for (const item of NAV_ITEMS) {
-        const el = document.getElementById(item.id);
-        if (el) {
-          const top = el.offsetTop;
-          const height = el.offsetHeight;
-          if (scrollPos >= top && scrollPos < top + height) {
-            setActiveSection(item.id);
-            return;
-          }
-        }
-      }
-      if (window.scrollY < 200) {
-        setActiveSection('');
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isExpanded) {
+        setIsExpanded(false);
       }
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsExpanded(false);
+      }
+    };
+
+    if (isExpanded) {
+      document.addEventListener('keydown', handleKeyDown);
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isExpanded]);
 
   // Window event listener to cycle dock position from external buttons
   useEffect(() => {
     const handleToggle = () => {
       setDockPosition((prev) => (prev === 'top' ? 'left' : prev === 'left' ? 'right' : 'top'));
+      setIsExpanded(false);
     };
     window.addEventListener('macdeck-toggle-notch', handleToggle);
     return () => {
@@ -71,16 +93,23 @@ export default function TopNotchIsland({
     };
   }, []);
 
-  // Compute exact dimensions
+  // Compute exact dimensions matching Swift implementation
   const getDimensions = () => {
-    if (isDetached) {
-      return { width: 340, height: 42 };
-    }
     if (dockPosition === 'left' || dockPosition === 'right') {
-      return { width: 160, height: 236 };
+      const baseW = isExpanded ? 280 : 48;
+      const baseH = isExpanded ? 380 : 116;
+      return {
+        width: baseW + (isPulling ? stretchDistance : 0),
+        height: baseH,
+      };
     }
-    // Top dock: comfortably houses camera, brand, and all navigation links
-    return { width: 510, height: 38 };
+    // Top dock
+    const baseW = isExpanded ? 480 : 184;
+    const baseH = isExpanded ? 220 : 32;
+    return {
+      width: baseW,
+      height: baseH + (isPulling ? stretchDistance : 0),
+    };
   };
 
   const { width, height } = getDimensions();
@@ -88,32 +117,129 @@ export default function TopNotchIsland({
     dockPosition === 'left' ? 'left' : dockPosition === 'right' ? 'right' : 'top';
 
   // Generate SVG path for the exact liquid notch outline
-  const notchPath = isDragging && stretchDistance > 0 && !isDetached
+  const notchPath = isPulling && stretchDistance > 0
     ? getLiquidPullPath(
         currentEdge,
-        width + (currentEdge === 'top' ? 0 : stretchDistance),
-        height + (currentEdge === 'top' ? stretchDistance : 0),
+        width,
+        height,
         stretchDistance,
         lateralOffset,
         false,
-        18
+        isExpanded ? 24 : 18
       )
     : getSideNotchPath(
         currentEdge,
         width,
         height,
-        dockPosition === 'floating' || isDetached ? 21 : 18,
+        isExpanded ? 24 : 18,
         14
       );
 
-  const handleNavClick = (href: string, e: React.MouseEvent) => {
-    if (isDragging) {
-      e.preventDefault();
+  // Pointer gesture handlers for fluid liquid pull and click
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Only trigger pull when clicking directly on notch chrome, not on links inside
+    if ((e.target as HTMLElement).closest('a, button:not([data-notch-trigger])')) {
       return;
     }
+    pointerStartRef.current = { x: e.clientX, y: e.clientY };
+    hasMovedRef.current = false;
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+
+    const dx = e.clientX - pointerStartRef.current.x;
+    const dy = e.clientY - pointerStartRef.current.y;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist > 4) {
+      hasMovedRef.current = true;
+    }
+
+    if (isExpanded) {
+      // In expanded state, check horizontal drag across edges to switch dock
+      const winW = typeof window !== 'undefined' ? window.innerWidth : 1200;
+      if (e.clientY <= 80) setDragProximity('top');
+      else if (e.clientX <= 110) setDragProximity('left');
+      else if (e.clientX >= winW - 110) setDragProximity('right');
+      else setDragProximity(null);
+      return;
+    }
+
+    // In collapsed state: Liquid Pull Effect onto Content Page!
+    let stretch = 0;
+    let lateral = 0;
+
+    if (dockPosition === 'top') {
+      // Pulling downward onto content page
+      stretch = Math.max(0, dy * 0.72);
+      lateral = dx;
+    } else if (dockPosition === 'left') {
+      // Pulling rightward onto content page
+      stretch = Math.max(0, dx * 0.72);
+      lateral = dy;
+    } else if (dockPosition === 'right') {
+      // Pulling leftward onto content page
+      stretch = Math.max(0, -dx * 0.72);
+      lateral = dy;
+    }
+
+    // Dampen maximum stretch to 110px
+    const clampedStretch = Math.min(110, stretch);
+
+    if (clampedStretch > 2) {
+      setIsPulling(true);
+      setStretchDistance(clampedStretch);
+      setLateralOffset(lateral);
+    }
+
+    // Check proximity to other screen edges
+    const winW = typeof window !== 'undefined' ? window.innerWidth : 1200;
+    if (e.clientY <= 75) setDragProximity('top');
+    else if (e.clientX <= 110) setDragProximity('left');
+    else if (e.clientX >= winW - 110) setDragProximity('right');
+    else setDragProximity(null);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+
+    const wasPulling = isPulling;
+    const currentStretch = stretchDistance;
+    const currentProximity = dragProximity;
+
+    // Reset liquid pull deformation
+    setIsPulling(false);
+    setStretchDistance(0);
+    setLateralOffset(0);
+    setDragProximity(null);
+
+    // If dragged to another edge dropzone, dock to it
+    if (currentProximity && currentProximity !== dockPosition) {
+      setDockPosition(currentProximity);
+      setIsExpanded(false);
+      return;
+    }
+
+    // If user pulled far enough (> 50px), snap open into expanded navigation!
+    if (wasPulling && currentStretch > 50) {
+      setIsExpanded(true);
+      return;
+    }
+
+    // If it was a clean click without significant pull movement: Toggle Expand!
+    if (!hasMovedRef.current) {
+      setIsExpanded((prev) => !prev);
+    }
+  };
+
+  const handleNavClick = (href: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsExpanded(false);
     const target = document.querySelector(href);
     if (target) {
-      e.preventDefault();
       target.scrollIntoView({ behavior: 'smooth' });
     }
   };
@@ -151,137 +277,77 @@ export default function TopNotchIsland({
         </defs>
       </svg>
 
-      {/* Edge Proximity Dropzone Previews (Visible while dragging near an edge) */}
+      {/* Edge Proximity Dropzone Previews */}
       <AnimatePresence>
-        {isDragging && dragProximity === 'top' && (
+        {isPulling && dragProximity && dragProximity !== dockPosition && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-0 left-1/2 -translate-x-1/2 w-[510px] max-w-[92vw] h-10 rounded-b-2xl border-2 border-dashed border-emerald-500/50 bg-emerald-950/20 backdrop-blur-xs z-40 flex items-center justify-center pointer-events-none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className={`fixed z-40 border-2 border-dashed border-emerald-400/50 bg-emerald-950/20 backdrop-blur-xs flex items-center justify-center pointer-events-none ${
+              dragProximity === 'top'
+                ? 'top-0 left-1/2 -translate-x-1/2 w-[480px] max-w-[90vw] h-10 rounded-b-2xl'
+                : dragProximity === 'left'
+                ? 'left-0 top-1/2 -translate-y-1/2 w-28 h-48 rounded-r-2xl'
+                : 'right-0 top-1/2 -translate-y-1/2 w-28 h-48 rounded-l-2xl'
+            }`}
           >
             <span className="text-[11px] font-mono text-emerald-300 font-medium tracking-wide">
-              Release to dock to Top Notch
-            </span>
-          </motion.div>
-        )}
-
-        {isDragging && dragProximity === 'left' && (
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="fixed left-0 top-1/2 -translate-y-1/2 w-44 h-60 rounded-r-2xl border-2 border-dashed border-emerald-500/50 bg-emerald-950/20 backdrop-blur-xs z-40 flex items-center justify-center pointer-events-none"
-          >
-            <span className="text-[11px] font-mono text-emerald-300 font-medium tracking-wide [writing-mode:vertical-rl] rotate-180">
-              Release to dock to Left Side Notch
-            </span>
-          </motion.div>
-        )}
-
-        {isDragging && dragProximity === 'right' && (
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            className="fixed right-0 top-1/2 -translate-y-1/2 w-44 h-60 rounded-l-2xl border-2 border-dashed border-emerald-500/50 bg-emerald-950/20 backdrop-blur-xs z-40 flex items-center justify-center pointer-events-none"
-          >
-            <span className="text-[11px] font-mono text-emerald-300 font-medium tracking-wide [writing-mode:vertical-rl]">
-              Release to dock to Right Side Notch
+              Release to dock
             </span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Main Draggable Notch Component Container */}
+      {/* Main Notch Component Container */}
       <div ref={containerRef} className={`${getContainerClasses()} ${className}`}>
+        {/* Side Notch Hover Bubble (SideNotchBubbleView.swift) */}
+        <AnimatePresence>
+          {!isExpanded &&
+            isHovered &&
+            !isPulling &&
+            (dockPosition === 'left' || dockPosition === 'right') && (
+              <motion.div
+                initial={{ opacity: 0, x: dockPosition === 'left' ? -6 : 6 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: dockPosition === 'left' ? -6 : 6 }}
+                transition={{ duration: 0.18 }}
+                className={`absolute top-1/2 -translate-y-1/2 ${
+                  dockPosition === 'left' ? 'left-[56px]' : 'right-[56px]'
+                } pointer-events-none z-30`}
+              >
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#12151f]/95 border border-white/20 text-white shadow-xl backdrop-blur-xl whitespace-nowrap text-xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)]" />
+                  <span className="font-semibold text-white/95">Pixel 8 Pro</span>
+                  <span className="text-white/40 font-bold">•</span>
+                  <span className="text-white/90 font-mono font-medium">Click to navigate</span>
+                </div>
+              </motion.div>
+            )}
+        </AnimatePresence>
+
+        {/* The Liquid Pullable Notch Element */}
         <motion.div
-          drag
-          dragMomentum={false}
-          dragElastic={0.2}
-          onDragStart={(_e, info) => {
-            dragStartPosRef.current = { x: info.point.x, y: info.point.y };
-            setIsDragging(true);
-          }}
-          onDrag={(_e, info) => {
-            const dx = info.point.x - dragStartPosRef.current.x;
-            const dy = info.point.y - dragStartPosRef.current.y;
-            const winW = typeof window !== 'undefined' ? window.innerWidth : 1200;
-
-            let stretch = 0;
-            let lateral = 0;
-
-            if (dockPosition === 'top') {
-              stretch = Math.max(0, dy);
-              lateral = dx;
-            } else if (dockPosition === 'left') {
-              stretch = Math.max(0, dx);
-              lateral = dy;
-            } else if (dockPosition === 'right') {
-              stretch = Math.max(0, -dx);
-              lateral = dy;
-            }
-
-            setStretchDistance(stretch);
-            setLateralOffset(lateral);
-
-            // Detach when pulled past 90px
-            if (stretch > 90 && !isDetached) {
-              setIsDetached(true);
-            }
-
-            // Proximity dropzone detection
-            const x = info.point.x;
-            const y = info.point.y;
-            if (y <= 85) {
-              setDragProximity('top');
-            } else if (x <= 120) {
-              setDragProximity('left');
-            } else if (x >= winW - 120) {
-              setDragProximity('right');
-            } else {
-              setDragProximity('floating');
-            }
-          }}
-          onDragEnd={(_e, info) => {
-            const dist = Math.hypot(
-              info.point.x - dragStartPosRef.current.x,
-              info.point.y - dragStartPosRef.current.y
-            );
-            const x = info.point.x;
-            const y = info.point.y;
-            const winW = typeof window !== 'undefined' ? window.innerWidth : 1200;
-
-            if (dist > 8) {
-              if (y <= 95) {
-                setDockPosition('top');
-              } else if (x <= 140) {
-                setDockPosition('left');
-              } else if (x >= winW - 140) {
-                setDockPosition('right');
-              } else {
-                setDockPosition('floating');
-              }
-            }
-
-            setStretchDistance(0);
-            setLateralOffset(0);
-            setIsDetached(false);
-            setDragProximity(null);
-            setTimeout(() => setIsDragging(false), 50);
-          }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          onHoverStart={() => setIsHovered(true)}
+          onHoverEnd={() => setIsHovered(false)}
           layout
           transition={{
             type: 'spring',
-            stiffness: 340,
+            stiffness: 350,
             damping: 26,
             mass: 0.75,
           }}
-          className="relative cursor-grab active:cursor-grabbing transition-transform max-w-[96vw]"
+          className={`relative touch-none transition-shadow ${
+            isExpanded ? 'cursor-default' : 'cursor-pointer hover:drop-shadow-[0_8px_16px_rgba(0,0,0,0.35)]'
+          }`}
           style={{ width, height }}
         >
           {/* ========================================================= */}
-          {/* SVG LIQUID GLASS BACKGROUND (SideNotchShape / LiquidPull) */}
+          {/* SVG LIQUID GLASS OUTLINE (SideNotchShape / LiquidPull)    */}
           {/* ========================================================= */}
           <svg
             className="absolute inset-0 w-full h-full pointer-events-none overflow-visible drop-shadow-[0_12px_28px_rgba(0,0,0,0.45)]"
@@ -297,37 +363,37 @@ export default function TopNotchIsland({
             />
 
             {/* Deep Obsidian Acrylic Glass Fill */}
-            <path d={notchPath} fill="url(#notchObsidianGradient)" />
+            <path d={notchPath} fill="url(#liquidObsidianGradient)" />
 
             {/* Directional Specular Reflection Rim */}
             <path
               d={notchPath}
               fill="none"
-              stroke="url(#notchRimGradient)"
-              strokeWidth="1.2"
+              stroke="url(#liquidSpecularRim)"
+              strokeWidth="1.25"
             />
 
             <defs>
               <linearGradient
-                id="notchObsidianGradient"
+                id="liquidObsidianGradient"
                 x1={dockPosition === 'right' ? '1' : '0'}
                 y1="0"
                 x2={dockPosition === 'right' ? '0' : '0'}
                 y2="1"
               >
-                <stop offset="0%" stopColor="#191c24" stopOpacity="0.98" />
-                <stop offset="100%" stopColor="#07090e" stopOpacity="0.99" />
+                <stop offset="0%" stopColor="#1a1e28" stopOpacity="0.98" />
+                <stop offset="100%" stopColor="#080a0f" stopOpacity="0.99" />
               </linearGradient>
 
               <linearGradient
-                id="notchRimGradient"
+                id="liquidSpecularRim"
                 x1="0"
                 y1="0"
                 x2={dockPosition === 'top' ? '0' : '1'}
                 y2={dockPosition === 'top' ? '1' : '0'}
               >
                 <stop offset="0%" stopColor="rgba(255, 255, 255, 0.45)" />
-                <stop offset="30%" stopColor="rgba(255, 255, 255, 0.18)" />
+                <stop offset="25%" stopColor="rgba(255, 255, 255, 0.18)" />
                 <stop offset="70%" stopColor="rgba(255, 255, 255, 0.05)" />
                 <stop offset="100%" stopColor="rgba(255, 255, 255, 0.01)" />
               </linearGradient>
@@ -335,135 +401,260 @@ export default function TopNotchIsland({
           </svg>
 
           {/* ========================================================= */}
-          {/* 1. TOP NOTCH: ALWAYS VISIBLE WITH NAVIGATIONS INSIDE      */}
+          {/* 1. COLLAPSED VIEW: TOP NOTCH (NO NAVIGATIONS IN DEFAULT)  */}
           {/* ========================================================= */}
-          {(dockPosition === 'top' || dockPosition === 'floating') && (
-            <div className="relative z-10 flex items-center justify-between w-full h-full px-3.5 sm:px-4 text-white">
-              {/* Left: Camera & Brand */}
-              <div
-                className="flex items-center gap-2 shrink-0 cursor-grab active:cursor-grabbing"
-                title="Drag notch anywhere to dock on sides or top"
-              >
-                {/* Camera Lens Dot */}
+          {!isExpanded && (dockPosition === 'top' || dockPosition === 'floating') && (
+            <div
+              data-notch-trigger
+              className="relative z-10 w-full h-full px-3.5 flex items-center justify-between text-white select-none pointer-events-auto"
+              title="Click or pull down to open navigation"
+            >
+              {/* Left: Camera Cutout & Status */}
+              <div className="flex items-center gap-1.5">
                 <div
                   className="w-2.5 h-2.5 rounded-full bg-[#0d121d] border border-[#1b253b] flex items-center justify-center shrink-0"
                   title="FaceTime Camera Cutout"
                 >
                   <div className="w-1 h-1 rounded-full bg-[#1b254b]" />
                 </div>
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.85)]" />
-                <span className="text-[11.5px] font-semibold tracking-tight text-white/95 font-poppins">
-                  macdeck
-                </span>
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.85)]" />
               </div>
 
-              {/* Vertical subtle divider */}
-              <div className="w-[1px] h-3 bg-white/15 mx-1" aria-hidden="true" />
+              {/* Center: Brand or Pull Feedback */}
+              <span className="text-[11px] font-semibold text-white/90 tracking-tight font-poppins">
+                {isPulling && stretchDistance > 35 ? (
+                  <span className="text-emerald-300 font-mono text-[10px]">
+                    {stretchDistance > 55 ? 'Release to open' : 'Pull down'}
+                  </span>
+                ) : (
+                  'macdeck'
+                )}
+              </span>
 
-              {/* Center: Directly Displayed Navigation Links */}
-              <nav
-                className="flex items-center gap-0.5 sm:gap-1 text-[11px] sm:text-[11.5px] font-medium"
-                aria-label="Liquid Notch Navigation"
-              >
-                {NAV_ITEMS.map((item) => {
-                  const isActive = activeSection === item.id;
-                  return (
-                    <a
-                      key={item.id}
-                      href={item.href}
-                      onClick={(e) => handleNavClick(item.href, e)}
-                      className={`relative px-2 sm:px-2.5 py-0.5 rounded-full transition-colors whitespace-nowrap cursor-pointer ${
-                        isActive
-                          ? 'text-white font-semibold'
-                          : 'text-white/65 hover:text-white'
-                      }`}
-                    >
-                      {isActive && (
-                        <motion.span
-                          layoutId="active-notch-nav-pill"
-                          className="absolute inset-0 bg-white/15 border border-white/20 rounded-full -z-10 shadow-xs"
-                          transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-                        />
-                      )}
-                      <span>{item.label}</span>
-                    </a>
-                  );
-                })}
-              </nav>
-
-              {/* Right: Drag Handle */}
-              <div
-                className="flex items-center gap-0.5 opacity-40 hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing pl-1.5"
-                title="Drag notch to reposition to side or top"
-              >
-                <div className="w-1 h-1 rounded-full bg-white/70" />
-                <div className="w-1 h-1 rounded-full bg-white/70" />
-                <div className="w-1 h-1 rounded-full bg-white/70" />
+              {/* Right: Battery Capsule */}
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-white/10 border border-white/12 text-[9.5px] font-mono text-white/90">
+                <svg className="w-2.5 h-2.5 fill-emerald-400" viewBox="0 0 24 24">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                </svg>
+                <span>98%</span>
               </div>
             </div>
           )}
 
           {/* ========================================================= */}
-          {/* 2. SIDE NOTCH: ALWAYS VISIBLE WITH NAVIGATIONS INSIDE     */}
+          {/* 2. COLLAPSED VIEW: SIDE NOTCH (NO NAVIGATIONS IN DEFAULT) */}
           {/* ========================================================= */}
-          {(dockPosition === 'left' || dockPosition === 'right') && (
-            <div className="relative z-10 flex flex-col justify-between w-full h-full p-3 text-white">
-              {/* Top Header: Camera Lens, Brand, & Drag Grip */}
-              <div className="flex items-center justify-between pb-2 border-b border-white/10">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#0d121d] border border-[#1b253b] flex items-center justify-center shrink-0">
-                    <div className="w-1 h-1 rounded-full bg-[#1b254b]" />
-                  </div>
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.85)]" />
-                  <span className="text-[11px] font-semibold text-white/95 tracking-tight font-poppins">
-                    macdeck
-                  </span>
+          {!isExpanded && (dockPosition === 'left' || dockPosition === 'right') && (
+            <div
+              data-notch-trigger
+              className="relative z-10 w-full h-full py-2.5 flex flex-col items-center justify-between text-white select-none pointer-events-auto"
+              title="Click or pull to open navigation"
+            >
+              {/* Connection Status Dot */}
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.85)]" />
+
+              {/* Circular Battery Progress Gauge (28×28) */}
+              <div className="flex flex-col items-center gap-1">
+                <div className="relative w-7 h-7 flex items-center justify-center">
+                  <svg className="w-full h-full -rotate-90" viewBox="0 0 28 28">
+                    <circle
+                      cx="14"
+                      cy="14"
+                      r="11"
+                      stroke="rgba(255, 255, 255, 0.12)"
+                      strokeWidth="2.5"
+                      fill="none"
+                    />
+                    <circle
+                      cx="14"
+                      cy="14"
+                      r="11"
+                      stroke="#34d399"
+                      strokeWidth="2.5"
+                      strokeDasharray={2 * Math.PI * 11}
+                      strokeDashoffset={2 * Math.PI * 11 * (1 - 0.98)}
+                      strokeLinecap="round"
+                      fill="none"
+                    />
+                  </svg>
+                  <svg
+                    className="absolute w-3 h-3 text-white fill-current"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z" />
+                  </svg>
                 </div>
-                <div
-                  className="flex items-center gap-0.5 opacity-40 hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
-                  title="Drag anywhere"
-                >
-                  <div className="w-1 h-1 rounded-full bg-white/70" />
-                  <div className="w-1 h-1 rounded-full bg-white/70" />
+                <span className="text-[9.5px] font-bold font-mono text-white/90">98%</span>
+              </div>
+
+              {/* Deck Badge */}
+              <span className="text-[8.5px] font-mono uppercase tracking-wider text-white/50">
+                Deck
+              </span>
+            </div>
+          )}
+
+          {/* ========================================================= */}
+          {/* 3. EXPANDED VIEW: TOP NOTCH (CLICK TO SHOW NAVIGATIONS)   */}
+          {/* ========================================================= */}
+          {isExpanded && (dockPosition === 'top' || dockPosition === 'floating') && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.22 }}
+              className="p-4 sm:p-5 flex flex-col justify-between h-full z-10 text-white select-none"
+            >
+              {/* Header Bar */}
+              <div className="flex items-center justify-between pb-2.5 border-b border-white/10">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.85)]" />
+                  <span className="text-xs font-semibold text-white/95">
+                    MacDeck Navigation HUD
+                  </span>
+                  <span className="text-[10px] text-white/40 font-mono">Pixel 8 Pro</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {/* Dock Switcher */}
+                  <div className="flex items-center gap-1 bg-white/5 rounded-lg p-0.5 border border-white/10 text-[9.5px] font-mono text-white/60">
+                    <button
+                      type="button"
+                      onClick={() => setDockPosition('top')}
+                      className={`px-1.5 py-0.5 rounded cursor-pointer ${
+                        dockPosition === 'top' ? 'bg-white/20 text-white' : 'hover:text-white'
+                      }`}
+                      title="Dock to top"
+                    >
+                      Top
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDockPosition('left')}
+                      className="px-1.5 py-0.5 rounded hover:text-white cursor-pointer"
+                      title="Dock to left side"
+                    >
+                      Left
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDockPosition('right')}
+                      className="px-1.5 py-0.5 rounded hover:text-white cursor-pointer"
+                      title="Dock to right side"
+                    >
+                      Right
+                    </button>
+                  </div>
+
+                  {/* Collapse Button */}
+                  <button
+                    type="button"
+                    onClick={() => setIsExpanded(false)}
+                    className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 transition-colors cursor-pointer"
+                    aria-label="Collapse Notch HUD"
+                  >
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
                 </div>
               </div>
 
-              {/* Vertical Stack: Directly Displayed Navigation Links */}
-              <nav
-                className="flex flex-col gap-1 my-auto text-[11px] font-medium"
-                aria-label="Side Notch Navigation"
-              >
-                {NAV_ITEMS.map((item) => {
-                  const isActive = activeSection === item.id;
-                  return (
-                    <a
-                      key={item.id}
-                      href={item.href}
-                      onClick={(e) => handleNavClick(item.href, e)}
-                      className={`relative px-2 py-1.5 rounded-lg transition-colors flex items-center justify-between text-left cursor-pointer ${
-                        isActive
-                          ? 'text-white font-semibold bg-white/15 border border-white/12'
-                          : 'text-white/65 hover:text-white hover:bg-white/8'
-                      }`}
-                    >
-                      <span className="truncate">{item.label}</span>
-                      {isActive && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.8)] shrink-0 ml-1" />
-                      )}
-                    </a>
-                  );
-                })}
-              </nav>
+              {/* 4 Primary Navigation Cards (2x2 Grid) */}
+              <div className="grid grid-cols-2 gap-2.5 my-auto">
+                {NAV_ITEMS.map((item) => (
+                  <a
+                    key={item.id}
+                    href={item.href}
+                    onClick={(e) => handleNavClick(item.href, e)}
+                    className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.12] border border-white/10 transition-all flex flex-col gap-0.5 text-left group cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-white/95 group-hover:text-emerald-300 transition-colors">
+                        {item.title}
+                      </span>
+                      <svg className="w-3 h-3 text-white/40 group-hover:text-emerald-300 group-hover:translate-x-0.5 transition-all" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                        <polyline points="9 18 15 12 9 6" />
+                      </svg>
+                    </div>
+                    <span className="text-[10px] text-white/50 line-clamp-1">
+                      {item.subtitle}
+                    </span>
+                  </a>
+                ))}
+              </div>
 
-              {/* Bottom Footer: Quick Dock Switchers */}
-              <div className="pt-2 border-t border-white/10 flex items-center justify-around text-[10px] text-white/45 font-mono">
+              {/* Footer Note */}
+              <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px] text-white/40 font-mono">
+                <span>Pull notch down to open • Drag to sides</span>
+                <span>Press Esc to collapse</span>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ========================================================= */}
+          {/* 4. EXPANDED VIEW: SIDE NOTCH (CLICK TO SHOW NAVIGATIONS)  */}
+          {/* ========================================================= */}
+          {isExpanded && (dockPosition === 'left' || dockPosition === 'right') && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.22 }}
+              className="p-4 flex flex-col justify-between h-full z-10 text-white select-none"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between pb-2.5 border-b border-white/10">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.85)]" />
+                  <span className="text-xs font-semibold text-white/95">MacDeck</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsExpanded(false)}
+                  className="w-5 h-5 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 transition-colors cursor-pointer"
+                  aria-label="Collapse Side Notch"
+                >
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Vertical Stack of Navigation Tiles */}
+              <div className="flex flex-col gap-2 my-auto">
+                {NAV_ITEMS.map((item) => (
+                  <a
+                    key={item.id}
+                    href={item.href}
+                    onClick={(e) => handleNavClick(item.href, e)}
+                    className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.12] border border-white/10 transition-all flex flex-col gap-0.5 text-left group cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-white/95 group-hover:text-emerald-300 transition-colors">
+                        {item.title}
+                      </span>
+                      <svg className="w-3 h-3 text-white/40 group-hover:text-emerald-300 group-hover:translate-x-0.5 transition-all" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                        <polyline points="9 18 15 12 9 6" />
+                      </svg>
+                    </div>
+                    <span className="text-[9.5px] text-white/50 line-clamp-1">
+                      {item.subtitle}
+                    </span>
+                  </a>
+                ))}
+              </div>
+
+              {/* Footer Dock Controls */}
+              <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px] text-white/40 font-mono">
                 <button
                   type="button"
                   onClick={() => setDockPosition('top')}
                   className="hover:text-white transition-colors cursor-pointer"
-                  title="Dock to top"
                 >
-                  Top
+                  Dock Top
                 </button>
                 <span>•</span>
                 <button
@@ -472,12 +663,11 @@ export default function TopNotchIsland({
                     setDockPosition((prev) => (prev === 'left' ? 'right' : 'left'))
                   }
                   className="hover:text-white transition-colors cursor-pointer"
-                  title="Switch sides"
                 >
-                  {dockPosition === 'left' ? 'Right' : 'Left'}
+                  {dockPosition === 'left' ? 'Switch Right' : 'Switch Left'}
                 </button>
               </div>
-            </div>
+            </motion.div>
           )}
         </motion.div>
       </div>
