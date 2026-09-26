@@ -14,6 +14,7 @@ export interface DesktopNotchMockupProps {
   slots?: DeckSlotItem[];
   onClearSlot?: (slot: DeckSlotItem) => void;
   onAssignSlot?: (index: number, app: Partial<DeckSlotItem>) => void;
+  onResetDefaults?: () => void;
   lastActionExecution?: ActionExecution | null;
   isExpanded?: boolean;
   onToggleExpanded?: () => void;
@@ -121,7 +122,7 @@ const DEFAULT_SLOTS: DeckSlotItem[] = [
   },
 ];
 
-function AppIconRenderer({ iconType, label }: { iconType: string; label: string }) {
+export function AppIconRenderer({ iconType, label }: { iconType: string; label: string }) {
   switch (iconType) {
     case 'terminal':
       return (
@@ -240,6 +241,7 @@ export default function DesktopNotchMockup({
   slots: controlledSlots,
   onClearSlot,
   onAssignSlot,
+  onResetDefaults,
   lastActionExecution = null,
   isExpanded: controlledIsExpanded,
   onToggleExpanded,
@@ -346,7 +348,11 @@ export default function DesktopNotchMockup({
   };
 
   const handleResetDefaults = () => {
-    setInternalSlots(DEFAULT_SLOTS);
+    if (onResetDefaults) {
+      onResetDefaults();
+    } else {
+      setInternalSlots(DEFAULT_SLOTS);
+    }
     triggerWireSync('Profile restored to defaults (6 slots synced)');
   };
 
