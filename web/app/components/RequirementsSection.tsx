@@ -10,38 +10,33 @@ interface RequirementItem {
 const REQUIREMENTS: RequirementItem[] = [
   {
     id: 'mac',
-    title: 'Mac computer',
-    primary: 'macOS 14 Sonoma or macOS 15 Sequoia',
-    description:
-      'Compatible with both Apple Silicon (M1, M2, M3, M4) and Intel Macs. Automatically matches your MacBook camera notch, or floats cleanly under the menu bar on external displays.',
+    title: 'Mac',
+    primary: 'macOS 14 Sonoma or later',
+    description: 'Apple Silicon & Intel Macs. Fits camera notch or floats under menu bar.',
   },
   {
     id: 'android',
-    title: 'Android device',
-    primary: 'Android 10.0 (API Level 29) or higher',
-    description:
-      'Works on any standard phone or tablet with touch support. The 6-slot deck dynamically rearranges itself for portrait or landscape orientation.',
+    title: 'Android',
+    primary: 'Android 10.0 or later',
+    description: 'Phones and tablets. Responsive portrait and landscape layouts.',
   },
   {
     id: 'connection',
     title: 'Connection',
-    primary: 'Standard USB cable or local Wi-Fi',
-    description:
-      'Plug in via USB for instant sub-millisecond tactile response, or connect wirelessly when both devices share the same local Wi-Fi or LAN network.',
+    primary: 'USB cable or local Wi-Fi',
+    description: '0.8ms wired USB tunnel, or wireless on the same local network.',
   },
   {
     id: 'device-setup',
-    title: 'Device setup',
-    primary: 'USB debugging enabled on your phone',
-    description:
-      'Only required if you choose to connect over a USB cable. No rooting, bootloader unlocking, or special third-party drivers needed.',
+    title: 'Phone setup',
+    primary: 'USB debugging enabled',
+    description: 'Required for wired USB mode. No root or extra drivers needed.',
   },
   {
     id: 'privacy',
-    title: 'Permissions & privacy',
-    primary: 'Local macOS Accessibility access',
-    description:
-      'Enables NotchDeck to launch and switch your selected Mac apps smoothly. No user accounts, cloud servers, or external tracking—everything stays 100% on your desk.',
+    title: 'Permissions',
+    primary: 'macOS Accessibility',
+    description: 'Enables launching apps. 100% local, no account or cloud data.',
   },
 ];
 
@@ -53,12 +48,9 @@ export default function RequirementsSection() {
       aria-labelledby="requirements-title"
     >
       <div className="section-heading">
-        <span className="section-kicker">System requirements</span>
-        <h2 id="requirements-title">Everything you need to run NotchDeck.</h2>
-        <p>
-          Works with your current Mac and Android phone using standard cables and local
-          network connections.
-        </p>
+        <span className="section-kicker">Requirements</span>
+        <h2 id="requirements-title">Simple hardware setup.</h2>
+        <p>Runs locally on your everyday Mac and Android device.</p>
       </div>
 
       <ul className="requirements-list" role="list">

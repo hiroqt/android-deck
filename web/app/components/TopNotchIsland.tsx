@@ -19,28 +19,40 @@ interface TopNotchIslandProps {
 
 const NAV_ITEMS = [
   {
-    id: 'hero',
-    title: 'Live Surface',
-    subtitle: 'Interactive MacBook notch & Android deck',
-    href: '#main-content',
+    id: 'demo',
+    title: 'Live Demo',
+    subtitle: 'Synchronized Mac & phone preview',
+    href: '#live-demo',
+  },
+  {
+    id: 'features',
+    title: 'Core Features',
+    subtitle: 'Notch HUD & 6-slot tactile deck',
+    href: '#features',
   },
   {
     id: 'how-it-works',
-    title: 'Quick Setup',
-    subtitle: 'Connect via USB or LAN in three simple steps',
+    title: 'How It Works',
+    subtitle: 'Connect in 3 simple steps',
     href: '#how-it-works',
   },
   {
-    id: 'github',
-    title: 'Source Code',
-    subtitle: 'Open source Swift, Kotlin & Python repo',
-    href: 'https://github.com',
+    id: 'requirements',
+    title: 'Requirements',
+    subtitle: 'Supported Mac & Android devices',
+    href: '#requirements',
   },
   {
-    id: 'toggle-dock',
-    title: 'Cycle Dock',
-    subtitle: 'Move Notch: Top, Left, or Right edge',
-    href: '#toggle',
+    id: 'support',
+    title: 'Support',
+    subtitle: 'FAQ & troubleshooting guide',
+    href: '/support',
+  },
+  {
+    id: 'get-started',
+    title: 'Get Started',
+    subtitle: 'Set up your desk controller',
+    href: '#get-started',
   },
 ];
 
@@ -125,15 +137,15 @@ export default function TopNotchIsland({
     }
     if (dockPosition === 'left' || dockPosition === 'right') {
       const baseW = isExpanded ? 256 : 44;
-      const baseH = isExpanded ? 276 : 108;
+      const baseH = isExpanded ? 360 : 108;
       return {
         width: baseW + (isPulling ? stretchDistance : 0),
         height: baseH,
       };
     }
     // Top dock
-    const baseW = isExpanded ? 510 : 184;
-    const baseH = isExpanded ? 244 : 32;
+    const baseW = isExpanded ? 540 : 184;
+    const baseH = isExpanded ? 248 : 32;
     return {
       width: baseW,
       height: baseH + (isPulling ? stretchDistance : 0),
@@ -261,7 +273,7 @@ export default function TopNotchIsland({
   };
 
   const handleNavClick = (href: string, e: React.MouseEvent) => {
-    if (href.startsWith('http')) {
+    if (href.startsWith('http') || href.startsWith('/')) {
       setIsExpanded(false);
       return;
     }
@@ -637,8 +649,8 @@ export default function TopNotchIsland({
                 </div>
               </div>
 
-              {/* 4 Primary Navigation Cards (2x2 Grid) */}
-              <div className="grid grid-cols-2 gap-2 my-auto">
+              {/* 6 Navigation Cards (3x2 Grid) */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 my-auto">
                 {NAV_ITEMS.map((item) => (
                   <a
                     key={item.id}
@@ -656,7 +668,7 @@ export default function TopNotchIsland({
                         <polyline points="9 18 15 12 9 6" />
                       </svg>
                     </div>
-                    <span className="text-[10.5px] text-white/70 leading-snug line-clamp-1">
+                    <span className="text-[10px] text-white/70 leading-snug line-clamp-1">
                       {item.subtitle}
                     </span>
                   </a>
@@ -665,7 +677,7 @@ export default function TopNotchIsland({
 
               {/* Footer Note */}
               <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px] text-white/45 font-mono">
-                <span className="truncate">Hold left click & drag to pull liquid • Press Esc to collapse</span>
+                <span className="truncate">Click to jump • Press Esc to collapse</span>
                 <span className="shrink-0 pl-2">v1.0</span>
               </div>
             </motion.div>
@@ -680,7 +692,7 @@ export default function TopNotchIsland({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
               transition={{ duration: 0.2 }}
-              className="relative z-20 px-3.5 pt-3.5 pb-3.5 flex flex-col justify-between w-full h-full text-white select-none"
+              className="relative z-20 px-3 pt-3 pb-3 flex flex-col justify-between w-full h-full text-white select-none"
             >
               {/* Header */}
               <div className="flex items-center justify-between pb-2 border-b border-white/10">
@@ -702,7 +714,7 @@ export default function TopNotchIsland({
               </div>
 
               {/* Vertical Stack of Navigation Tiles */}
-              <div className="flex flex-col gap-1.5 my-auto">
+              <div className="flex flex-col gap-1 my-auto">
                 {NAV_ITEMS.map((item) => (
                   <a
                     key={item.id}
@@ -710,17 +722,17 @@ export default function TopNotchIsland({
                     target={item.href.startsWith('http') ? '_blank' : undefined}
                     rel={item.href.startsWith('http') ? 'noopener noreferrer' : undefined}
                     onClick={(e) => handleNavClick(item.href, e)}
-                    className="px-3 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 hover:border-white/20 transition-all flex flex-col gap-0.5 text-left group cursor-pointer"
+                    className="px-2.5 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 hover:border-white/20 transition-all flex flex-col gap-0.5 text-left group cursor-pointer"
                   >
                     <div className="flex items-center justify-between gap-1">
-                      <span className="text-xs font-semibold text-white group-hover:text-emerald-300 transition-colors truncate">
+                      <span className="text-[11px] font-semibold text-white group-hover:text-emerald-300 transition-colors truncate">
                         {item.title}
                       </span>
-                      <svg className="w-3 h-3 text-white/40 group-hover:text-emerald-300 group-hover:translate-x-0.5 transition-all shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                      <svg className="w-2.5 h-2.5 text-white/40 group-hover:text-emerald-300 group-hover:translate-x-0.5 transition-all shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                         <polyline points="9 18 15 12 9 6" />
                       </svg>
                     </div>
-                    <span className="text-[10px] text-white/70 leading-snug line-clamp-1">
+                    <span className="text-[9.5px] text-white/60 leading-tight line-clamp-1">
                       {item.subtitle}
                     </span>
                   </a>

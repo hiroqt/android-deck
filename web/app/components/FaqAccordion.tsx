@@ -46,9 +46,31 @@ const FAQ_ITEMS: FaqItem[] = [
     answer:
       'Whenever NotchDeck is running, click the camera notch or status bar HUD on your Mac to open the configurator. Click any empty slot to choose an installed Mac application, or click the minus icon on any assigned app to remove it. Any change you make appears on your Android screen in real time.',
   },
+  {
+    id: 'usb-troubleshooting',
+    question: 'What should I do if my Mac does not detect my Android phone over USB?',
+    answer:
+      'Make sure you are using a USB data cable rather than a charge-only cable. On your Android device, enable Developer Options and turn on USB Debugging. When connected, tap "Allow USB Debugging" on your phone. If macOS asks to allow the accessory to connect, click Allow.',
+  },
+  {
+    id: 'wifi-discovery',
+    question: 'How does wireless pairing over Wi-Fi work?',
+    answer:
+      'Both your Mac and Android phone must be connected to the same local Wi-Fi network or subnet. NotchDeck uses local mDNS multicast discovery to find your Mac automatically without manual IP configuration. Make sure your router does not have client/AP isolation enabled.',
+  },
 ];
 
-export default function FaqAccordion() {
+export interface FaqAccordionProps {
+  className?: string;
+  title?: string;
+  subtitle?: string;
+}
+
+export default function FaqAccordion({
+  className = '',
+  title = 'Frequently asked questions.',
+  subtitle = 'Details on connectivity, physical notch detection, sandboxed security, and offline operation.',
+}: FaqAccordionProps) {
   const [openId, setOpenId] = useState<string | null>('latency-transport');
 
   const toggleItem = (id: string) => {
@@ -56,14 +78,10 @@ export default function FaqAccordion() {
   };
 
   return (
-    <section className="faq-section" id="faq" aria-labelledby="faq-title">
+    <section className={`faq-section ${className}`} id="faq" aria-labelledby="faq-title">
       <div className="section-heading">
-        <span className="section-kicker">Got questions?</span>
-        <h2 id="faq-title">Frequently asked questions.</h2>
-        <p>
-          Details on connectivity, physical notch detection, sandboxed security, and offline
-          operation.
-        </p>
+        <h2 id="faq-title">{title}</h2>
+        {subtitle && <p>{subtitle}</p>}
       </div>
 
       <div className="faq-list" role="region" aria-label="FAQ Accordion">

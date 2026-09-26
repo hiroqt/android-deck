@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import TopNotchIsland from './components/TopNotchIsland';
 import FigureShowcase from './components/FigureShowcase';
+import CoreFeatures from './components/CoreFeatures';
 import RequirementsSection from './components/RequirementsSection';
-import FaqAccordion from './components/FaqAccordion';
 import CtaMacbookDemo from './components/CtaMacbookDemo';
 
 function AppleLetterIcon({ className }: { className?: string }) {
@@ -156,6 +156,9 @@ export default function HomePage() {
         {/* Breakout Figure Showcase: MacBook Notch HUD & Android Phone Deck */}
         <FigureShowcase />
 
+        {/* 6 Core Superpower Features in 2x3 Squircle Grid */}
+        <CoreFeatures />
+
         <section className="how-section" id="how-it-works" aria-labelledby="how-title">
           <div className="section-heading">
             <span className="section-kicker">Quick setup</span>
@@ -205,10 +208,7 @@ export default function HomePage() {
         {/* System Requirements */}
         <RequirementsSection />
 
-        {/* Frequently Asked Questions */}
-        <FaqAccordion />
-
-        <section className="closing-section" aria-labelledby="closing-title">
+        <section className="closing-section" id="get-started" aria-labelledby="closing-title">
           <div className="closing-header">
             <div>
               <span className="section-kicker">Make your phone useful at your desk</span>
@@ -227,17 +227,10 @@ export default function HomePage() {
         <footer>
           <span>© 2026 NotchDeck</span>
           <nav className="links" aria-label="Footer Navigation">
+            <a href="#features">Features</a>
             <a href="#how-it-works">How it works</a>
             <a href="#requirements">Requirements</a>
-            <a href="#faq">FAQ</a>
-            <a
-              href="https://github.com/arnel/android-deck"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Source code on GitHub (opens in a new tab)"
-            >
-              Source code
-            </a>
+            <a href="/support">Support</a>
           </nav>
         </footer>
       </main>
