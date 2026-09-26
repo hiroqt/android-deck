@@ -90,6 +90,14 @@ export default function DualInteractiveStage({
   const [isWireActive, setIsWireActive] = useState<boolean>(false);
 
   const packetTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const activeSlotTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (packetTimerRef.current) clearTimeout(packetTimerRef.current);
+      if (activeSlotTimerRef.current) clearTimeout(activeSlotTimerRef.current);
+    };
+  }, []);
 
   // Sync internal state when external controlledSlots change
   useEffect(() => {
@@ -165,7 +173,8 @@ export default function DualInteractiveStage({
       latency: '0.8ms',
     });
 
-    setTimeout(() => {
+    if (activeSlotTimerRef.current) clearTimeout(activeSlotTimerRef.current);
+    activeSlotTimerRef.current = setTimeout(() => {
       setActivePhoneSlotId(null);
     }, 240);
   };

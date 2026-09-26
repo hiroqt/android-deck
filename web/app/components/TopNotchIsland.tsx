@@ -141,6 +141,13 @@ export default function TopNotchIsland({
     }, 2800);
   };
 
+  useEffect(() => {
+    return () => {
+      if (notificationTimeoutRef.current) clearTimeout(notificationTimeoutRef.current);
+    };
+  }, []);
+
+
   const handleToggleExpand = () => {
     setIsExpanded((prev) => !prev);
     setSelectedSlotIndex(null);
@@ -237,8 +244,18 @@ export default function TopNotchIsland({
         className={`bg-black text-white shadow-2xl overflow-hidden border-x border-b border-white/15 ${
           isExpanded
             ? 'w-[540px] max-w-[95vw] rounded-b-[22px] bg-[#0c1017]/95 backdrop-blur-2xl'
-            : 'w-[184px] h-[32px] rounded-b-[16px] cursor-pointer hover:bg-[#11141d] active:scale-[0.99]'
+            : 'w-[184px] h-[32px] rounded-b-[16px] cursor-pointer hover:bg-[#11141d] active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400'
         }`}
+        role={!isExpanded ? 'button' : undefined}
+        tabIndex={!isExpanded ? 0 : undefined}
+        aria-expanded={isExpanded}
+        aria-label="Toggle NotchDeck HUD"
+        onKeyDown={(e) => {
+          if (!isExpanded && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            handleToggleExpand();
+          }
+        }}
         onClick={!isExpanded ? handleToggleExpand : undefined}
       >
         {/* Collapsed State */}
