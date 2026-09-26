@@ -39,7 +39,7 @@ const FAQ_ITEMS: FaqItem[] = [
     question:
       'How does NotchDeck detect and handle the physical MacBook display notch?',
     answer:
-      'NotchDeck utilizes native AppKit screen geometry APIs (NSScreen.auxiliaryTopLeftArea and NSScreen.auxiliaryTopRightArea) to query the physical dimensions of the camera housing cutout. It pins an NSPanel at NSWindow.Level.statusBar matching Apples hardware curvature. On external monitors, Studio Displays, or notchless MacBooks, NotchDeck automatically detects the absence of a camera housing and adapts into a refined, floating status bar HUD beneath the top menu bar.',
+      'NotchDeck utilizes native AppKit screen geometry APIs (NSScreen.auxiliaryTopLeftArea and NSScreen.auxiliaryTopRightArea) to query the physical dimensions of the camera housing cutout. It pins an NSPanel at NSWindow.Level.statusBar matching Apple\'s hardware curvature. On external monitors, Studio Displays, or notchless MacBooks, NotchDeck automatically detects the absence of a camera housing and adapts into a refined, floating status bar HUD beneath the top menu bar.',
     keyMetric: 'Sub-pixel hardware snapping',
   },
   {
@@ -111,6 +111,7 @@ export default function FaqAccordion() {
                 {/* Accordion Trigger Header */}
                 <button
                   type="button"
+                  id={`faq-header-${item.id}`}
                   onClick={() => toggleItem(item.id)}
                   aria-expanded={isOpen}
                   aria-controls={`faq-answer-${item.id}`}

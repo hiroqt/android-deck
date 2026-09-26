@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
   Copy01Icon,
@@ -127,14 +127,22 @@ const TERMINAL_TABS: TerminalTab[] = [
 export default function TerminalCommands() {
   const [activeTabIdx, setActiveTabIdx] = useState(0);
   const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
 
   const activeTab = TERMINAL_TABS[activeTabIdx];
 
   const handleCopy = async () => {
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
     try {
       await navigator.clipboard.writeText(activeTab.command);
       setCopied(true);
-      setTimeout(() => {
+      copyTimerRef.current = setTimeout(() => {
         setCopied(false);
       }, 2000);
     } catch {
@@ -146,9 +154,10 @@ export default function TerminalCommands() {
       document.execCommand('copy');
       document.body.removeChild(textarea);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
     }
   };
+
 
   return (
     <section
